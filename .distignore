@@ -18,6 +18,11 @@
 /composer.lock
 /package-lock.json
 /yarn.lock
+/publish.sh
+/deploy.sh
+/.env
+/.env.example
+/requirements.md
 
 ## Node modules and build tools
 
@@ -43,6 +48,7 @@
 /.cache
 
 ## Documentation and requirements
+
 ## Note: LICENSE file is INCLUDED in distribution (MIT license)
 
 /requirements
