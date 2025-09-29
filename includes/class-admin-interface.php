@@ -133,37 +133,46 @@ class Admin_Interface {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_admin_assets( $hook ) {
-		// Only load on our settings page
-		if ( 'settings_page_optipress-settings' !== $hook ) {
-			return;
+		// Settings page assets
+		if ( 'settings_page_optipress-settings' === $hook ) {
+			// CSS
+			wp_enqueue_style(
+				'optipress-admin',
+				OPTIPRESS_PLUGIN_URL . 'admin/css/admin-styles.css',
+				array(),
+				OPTIPRESS_VERSION
+			);
+
+			// JavaScript
+			wp_enqueue_script(
+				'optipress-admin',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-settings.js',
+				array( 'jquery' ),
+				OPTIPRESS_VERSION,
+				true
+			);
+
+			// Localize script
+			wp_localize_script(
+				'optipress-admin',
+				'optipressAdmin',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( 'optipress_admin' ),
+				)
+			);
 		}
 
-		// CSS
-		wp_enqueue_style(
-			'optipress-admin',
-			OPTIPRESS_PLUGIN_URL . 'admin/css/admin-styles.css',
-			array(),
-			OPTIPRESS_VERSION
-		);
-
-		// JavaScript
-		wp_enqueue_script(
-			'optipress-admin',
-			OPTIPRESS_PLUGIN_URL . 'admin/js/admin-settings.js',
-			array( 'jquery' ),
-			OPTIPRESS_VERSION,
-			true
-		);
-
-		// Localize script
-		wp_localize_script(
-			'optipress-admin',
-			'optipressAdmin',
-			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'optipress_admin' ),
-			)
-		);
+		// Upload progress tracking on media pages
+		if ( in_array( $hook, array( 'upload.php', 'media-new.php', 'post.php', 'post-new.php' ), true ) ) {
+			wp_enqueue_script(
+				'optipress-upload-progress',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/upload-progress.js',
+				array( 'jquery', 'media-upload' ),
+				OPTIPRESS_VERSION,
+				true
+			);
+		}
 	}
 
 	/**

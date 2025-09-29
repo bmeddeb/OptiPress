@@ -71,8 +71,11 @@ class SVG_Sanitizer {
 	 */
 	private function init_hooks() {
 		// Enable SVG MIME type
-		add_filter( 'upload_mimes', array( $this, 'enable_svg_mime_type' ) );
+		add_filter( 'upload_mimes', array( $this, 'enable_svg_mime_type' ), 10, 1 );
 		add_filter( 'wp_check_filetype_and_ext', array( $this, 'check_svg_filetype' ), 10, 4 );
+
+		// Additional MIME type check for multi-site
+		add_filter( 'wp_check_filetype_and_ext', array( $this, 'fix_mime_type_svg' ), 75, 4 );
 
 		// Sanitize SVG on upload
 		add_filter( 'wp_handle_upload_prefilter', array( $this, 'validate_svg_upload' ) );
@@ -80,6 +83,9 @@ class SVG_Sanitizer {
 
 		// Fix SVG display in media library
 		add_action( 'admin_head', array( $this, 'fix_svg_display' ) );
+
+		// Fix SVG metadata
+		add_filter( 'wp_update_attachment_metadata', array( $this, 'fix_svg_metadata' ), 10, 2 );
 	}
 
 	/**
@@ -120,11 +126,28 @@ class SVG_Sanitizer {
 	 * @return array Modified file data.
 	 */
 	public function check_svg_filetype( $data, $file, $filename, $mimes ) {
-		$filetype = wp_check_filetype( $filename, $mimes );
+		// Get file extension
+		$ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
 
-		if ( 'svg' === $filetype['ext'] ) {
-			$data['ext']  = 'svg';
-			$data['type'] = 'image/svg+xml';
+		// Check if it's an SVG file
+		if ( 'svg' === $ext || 'svgz' === $ext ) {
+			// Verify the file content is actually SVG
+			if ( file_exists( $file ) ) {
+				$file_contents = file_get_contents( $file, false, null, 0, 100 );
+
+				// Check for SVG signature
+				if ( false !== strpos( $file_contents, '<svg' ) || false !== strpos( $file_contents, '<?xml' ) ) {
+					$data['ext']  = 'svg';
+					$data['type'] = 'image/svg+xml';
+
+					// Fix WordPress's "proper_filename" check
+					$data['proper_filename'] = $filename;
+				}
+			} else {
+				// File doesn't exist yet, trust the extension
+				$data['ext']  = 'svg';
+				$data['type'] = 'image/svg+xml';
+			}
 		}
 
 		return $data;
@@ -511,5 +534,80 @@ class SVG_Sanitizer {
 		}
 
 		return $log;
+	}
+
+	/**
+	 * Additional MIME type check for SVG files
+	 *
+	 * This runs at priority 75 to override WordPress's default check.
+	 * Needed for multisite and some hosting configurations.
+	 *
+	 * @param array  $data     File data.
+	 * @param string $file     File path.
+	 * @param string $filename File name.
+	 * @param array  $mimes    Allowed MIME types.
+	 * @return array Modified file data.
+	 */
+	public function fix_mime_type_svg( $data, $file, $filename, $mimes ) {
+		$ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+
+		// Only process SVG files
+		if ( 'svg' !== $ext && 'svgz' !== $ext ) {
+			return $data;
+		}
+
+		// If type or ext is not set, set them
+		if ( empty( $data['type'] ) || empty( $data['ext'] ) ) {
+			$data['type'] = 'image/svg+xml';
+			$data['ext']  = 'svg';
+		}
+
+		// Override any "false" proper_filename
+		if ( isset( $data['proper_filename'] ) && false === $data['proper_filename'] ) {
+			$data['proper_filename'] = $filename;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Fix SVG metadata after upload
+	 *
+	 * @param array $metadata Attachment metadata.
+	 * @param int   $attachment_id Attachment ID.
+	 * @return array Modified metadata.
+	 */
+	public function fix_svg_metadata( $metadata, $attachment_id ) {
+		$mime_type = get_post_mime_type( $attachment_id );
+
+		// Only process SVG files
+		if ( 'image/svg+xml' !== $mime_type ) {
+			return $metadata;
+		}
+
+		$file = get_attached_file( $attachment_id );
+
+		if ( ! file_exists( $file ) ) {
+			return $metadata;
+		}
+
+		// Get SVG dimensions if not set
+		if ( empty( $metadata['width'] ) || empty( $metadata['height'] ) ) {
+			$svg_content = file_get_contents( $file );
+
+			if ( false !== $svg_content ) {
+				// Try to extract viewBox or width/height
+				if ( preg_match( '/viewBox=["\']([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)["\']/i', $svg_content, $matches ) ) {
+					$metadata['width']  = intval( $matches[3] );
+					$metadata['height'] = intval( $matches[4] );
+				} elseif ( preg_match( '/width=["\']([0-9.]+)["\']/i', $svg_content, $width_match ) &&
+						   preg_match( '/height=["\']([0-9.]+)["\']/i', $svg_content, $height_match ) ) {
+					$metadata['width']  = intval( $width_match[1] );
+					$metadata['height'] = intval( $height_match[1] );
+				}
+			}
+		}
+
+		return $metadata;
 	}
 }
