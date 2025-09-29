@@ -63,6 +63,11 @@ class Image_Converter {
 
 		// Hook to display admin notices for conversion errors
 		add_action( 'admin_notices', array( $this, 'display_conversion_errors' ) );
+
+		// Hook to serve converted images
+		add_filter( 'wp_get_attachment_url', array( $this, 'filter_attachment_url' ), 10, 2 );
+		add_filter( 'wp_get_attachment_image_src', array( $this, 'filter_image_src' ), 10, 4 );
+		add_filter( 'wp_calculate_image_srcset', array( $this, 'filter_image_srcset' ), 10, 5 );
 	}
 
 	/**
@@ -394,10 +399,146 @@ class Image_Converter {
 		}
 
 		return array(
-			'format'         => get_post_meta( $attachment_id, '_optipress_format', true ),
-			'engine'         => get_post_meta( $attachment_id, '_optipress_engine', true ),
+			'format'          => get_post_meta( $attachment_id, '_optipress_format', true ),
+			'engine'          => get_post_meta( $attachment_id, '_optipress_engine', true ),
 			'converted_sizes' => get_post_meta( $attachment_id, '_optipress_converted_sizes', true ),
 			'conversion_date' => get_post_meta( $attachment_id, '_optipress_conversion_date', true ),
 		);
+	}
+
+	/**
+	 * Filter attachment URL to serve converted version
+	 *
+	 * @param string $url           Attachment URL.
+	 * @param int    $attachment_id Attachment ID.
+	 * @return string Modified URL.
+	 */
+	public function filter_attachment_url( $url, $attachment_id ) {
+		// Check if attachment is converted
+		if ( ! $this->is_converted( $attachment_id ) ) {
+			return $url;
+		}
+
+		// Get conversion format
+		$format = get_post_meta( $attachment_id, '_optipress_format', true );
+
+		if ( empty( $format ) ) {
+			return $url;
+		}
+
+		// Generate converted URL
+		$converted_url = $this->get_converted_url( $url, $format );
+
+		// Check if converted file exists
+		$converted_path = $this->url_to_path( $converted_url );
+
+		if ( $converted_path && file_exists( $converted_path ) ) {
+			return $converted_url;
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Filter image src to serve converted version
+	 *
+	 * @param array|false  $image         Array of image data or false.
+	 * @param int          $attachment_id Attachment ID.
+	 * @param string|int[] $size          Image size.
+	 * @param bool         $icon          Whether to use icon.
+	 * @return array|false Modified image data.
+	 */
+	public function filter_image_src( $image, $attachment_id, $size, $icon ) {
+		if ( false === $image || ! $this->is_converted( $attachment_id ) ) {
+			return $image;
+		}
+
+		// Get conversion format
+		$format = get_post_meta( $attachment_id, '_optipress_format', true );
+
+		if ( empty( $format ) ) {
+			return $image;
+		}
+
+		// Modify URL (index 0)
+		if ( isset( $image[0] ) ) {
+			$converted_url  = $this->get_converted_url( $image[0], $format );
+			$converted_path = $this->url_to_path( $converted_url );
+
+			if ( $converted_path && file_exists( $converted_path ) ) {
+				$image[0] = $converted_url;
+			}
+		}
+
+		return $image;
+	}
+
+	/**
+	 * Filter image srcset to serve converted versions
+	 *
+	 * @param array  $sources       Array of image sources.
+	 * @param array  $size_array    Array of width and height values.
+	 * @param string $image_src     The image src.
+	 * @param array  $image_meta    The image metadata.
+	 * @param int    $attachment_id Attachment ID.
+	 * @return array Modified sources.
+	 */
+	public function filter_image_srcset( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
+		if ( ! $this->is_converted( $attachment_id ) ) {
+			return $sources;
+		}
+
+		// Get conversion format
+		$format = get_post_meta( $attachment_id, '_optipress_format', true );
+
+		if ( empty( $format ) ) {
+			return $sources;
+		}
+
+		// Convert each source URL
+		foreach ( $sources as $width => $source ) {
+			if ( isset( $source['url'] ) ) {
+				$converted_url  = $this->get_converted_url( $source['url'], $format );
+				$converted_path = $this->url_to_path( $converted_url );
+
+				if ( $converted_path && file_exists( $converted_path ) ) {
+					$sources[ $width ]['url'] = $converted_url;
+				}
+			}
+		}
+
+		return $sources;
+	}
+
+	/**
+	 * Convert image URL to converted format URL
+	 *
+	 * @param string $url    Original URL.
+	 * @param string $format Target format (webp or avif).
+	 * @return string Converted URL.
+	 */
+	private function get_converted_url( $url, $format ) {
+		// Replace extension
+		return preg_replace( '/\.(jpg|jpeg|png)$/i', '.' . $format, $url );
+	}
+
+	/**
+	 * Convert URL to file system path
+	 *
+	 * @param string $url URL to convert.
+	 * @return string|false File path or false on failure.
+	 */
+	private function url_to_path( $url ) {
+		$upload_dir = wp_upload_dir();
+
+		// Check if URL is in uploads directory
+		if ( 0 !== strpos( $url, $upload_dir['baseurl'] ) ) {
+			return false;
+		}
+
+		// Convert URL to path
+		$path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $url );
+
+		return $path;
 	}
 }
