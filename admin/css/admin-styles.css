@@ -1,0 +1,101 @@
+/**
+ * OptiPress Admin Styles
+ *
+ * @package OptiPress
+ */
+
+/* Main Container */
+.optipress-settings {
+	max-width: 1200px;
+}
+
+.optipress-settings-section {
+	background: #fff;
+	padding: 20px;
+	margin: 20px 0;
+	border: 1px solid #ccd0d4;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Status Indicators */
+.optipress-status-success {
+	color: #46b450;
+	font-weight: 600;
+}
+
+.optipress-status-error {
+	color: #dc3232;
+	font-weight: 600;
+}
+
+.optipress-status-warning {
+	color: #ffb900;
+	font-weight: 600;
+}
+
+/* Quality Slider */
+.optipress-quality-slider {
+	width: 300px;
+	vertical-align: middle;
+	margin-right: 10px;
+}
+
+.optipress-quality-display {
+	display: inline-block;
+	min-width: 40px;
+	padding: 4px 8px;
+	background: #f0f0f1;
+	border: 1px solid #8c8f94;
+	border-radius: 3px;
+	font-weight: 600;
+	text-align: center;
+}
+
+/* Compatibility Status */
+#optipress-compatibility-status {
+	padding: 10px;
+	border-radius: 4px;
+}
+
+#optipress-compatibility-status .optipress-status-success {
+	display: block;
+	padding: 8px 12px;
+	background: #d5f5d7;
+	border-left: 4px solid #46b450;
+	border-radius: 3px;
+}
+
+#optipress-compatibility-status .optipress-status-error {
+	display: block;
+	padding: 8px 12px;
+	background: #fdd;
+	border-left: 4px solid #dc3232;
+	border-radius: 3px;
+}
+
+/* Tables */
+.optipress-settings table.widefat th {
+	font-weight: 600;
+}
+
+.optipress-settings table.widefat td {
+	padding: 12px 10px;
+}
+
+/* Notices */
+.optipress-settings .notice.inline {
+	margin: 20px 0;
+	padding: 12px;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+	.optipress-quality-slider {
+		width: 100%;
+		max-width: 300px;
+	}
+
+	.optipress-settings-section {
+		padding: 15px;
+	}
+}
