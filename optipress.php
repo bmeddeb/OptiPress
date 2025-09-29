@@ -79,8 +79,10 @@ function optipress_load_files() {
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/engines/class-imagick-engine.php';
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/engines/class-engine-registry.php';
 
+	// Image converter
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-image-converter.php';
+
 	// Additional classes will be loaded here as they are developed:
-	// - Image_Converter
 	// - SVG_Sanitizer
 	// - Admin_Interface
 	// - Batch_Processor
@@ -98,6 +100,9 @@ function optipress_init() {
 
 	// Initialize Engine Registry
 	\OptiPress\Engines\Engine_Registry::get_instance();
+
+	// Initialize Image Converter
+	\OptiPress\Image_Converter::get_instance();
 
 	// Additional initialization will be added in subsequent phases
 }
