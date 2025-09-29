@@ -1,0 +1,55 @@
+# Dependency directories
+node_modules/
+vendor/
+requirements/
+requirements/*
+requirements.md
+PROJECT-PHASES.md
+# Logs and databases
+*.log
+*.sql
+
+# Environment and configuration files
+.env
+wp-config.php
+.htaccess
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+*.sublime-*
+
+# Build artifacts or packaged files
+*.zip
+*.tar.gz
+dist/
+
+# githhub and gitlab cli files
+# design files
+*.air
+*.psd
+*.ai
+*.sketch
+*.xd
+.claude/
+*.prompt
+CLAUDE.md
+CLAUDE.pdf
+AGENTS.md
+GEMINI.md
+.github/
+.github/workflows/
+.gitlab-ci.yml
+.gitlab/
+.gitlab/*
+.gitlab-ci/*
+.gitlab-ci.yml
+.gitlab/ci/
+.gitlab/ci/*
+.gitlab/pipelines/
+.gitlab/pipelines/*
+.gitlab/jobs/
+.gitlab/jobs/*

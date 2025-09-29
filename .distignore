@@ -1,0 +1,131 @@
+# Hidden files and folders (development only)
+
+.*
+
+## Development files
+
+/.git
+/.gitignore
+/.gitattributes
+/.distignore
+/.editorconfig
+/.travis.yml
+/.github
+/phpunit.xml
+/phpunit.xml.dist
+/phpcs.xml
+/phpcs.xml.dist
+/composer.lock
+/package-lock.json
+/yarn.lock
+
+## Node modules and build tools
+
+/node_modules
+/webpack.config.js
+/webpack.mix.js
+/gulpfile.js
+/babel.config.js
+/.babelrc
+/.eslintrc.js
+/.eslintrc.json
+/.stylelintrc
+/tsconfig.json
+
+## Development directories
+
+/tests
+/coverage
+/dev
+/build
+/src
+/.tmp
+/.cache
+
+## Documentation and requirements
+## Note: LICENSE file is INCLUDED in distribution (MIT license)
+
+/requirements
+/docs
+/README.md
+/CONTRIBUTING.md
+/CODE_OF_CONDUCT.md
+
+## PDF files (development documentation)
+
+*.pdf
+
+## Logs and temporary files
+
+*.log
+*.tmp
+*.temp
+/tmp
+/temp
+/logs
+
+## OS generated files
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+## IDE files
+
+/.vscode
+/.idea
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+## Sass cache
+
+/.sass-cache
+/sass-cache
+
+## Composer dev dependencies
+
+/vendor/bin
+/vendor/phpunit
+/vendor/squizlabs
+/vendor/wp-coding-standards
+/vendor/dealerdirect
+/vendor/phpcompatibility
+
+## NPM scripts that aren't needed in production
+
+/admin/assets/js/src
+/admin/assets/css/src
+/admin/assets/scss
+
+## Test files
+
+/phpunit.xml*
+/tests/
+/test/
+*.test.js
+
+## Coverage reports
+
+/coverage/
+/clover.xml
+
+## Backup files
+
+*.bak
+*.backup
+*~
+
+## Project specific exclusions
+
+/PROJECT-PHASES.md
+/CLAUDE.md
+/AGENTS.md
+/GEMINI.md
+/dist/
+/requirements.md
