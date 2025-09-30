@@ -136,6 +136,41 @@ $security_log  = $svg_sanitizer->get_security_log( 10 );
 		<p><em><?php esc_html_e( 'No SVG upload activity recorded yet.', 'optipress' ); ?></em></p>
 	<?php endif; ?>
 
+	<!-- Batch Sanitization Section -->
+	<h3><?php esc_html_e( 'Batch Sanitization', 'optipress' ); ?></h3>
+	<p class="description">
+		<?php esc_html_e( 'Sanitize all existing SVG files in your media library. This will overwrite each file with a sanitized version.', 'optipress' ); ?>
+	</p>
+
+	<div class="optipress-batch-section">
+		<div class="optipress-batch-stats">
+			<p>
+				<?php esc_html_e( 'SVG files found:', 'optipress' ); ?>
+				<strong id="optipress-total-svgs">-</strong>
+			</p>
+		</div>
+
+		<div class="optipress-batch-controls" style="margin-top: 15px;">
+			<button type="button" id="optipress-sanitize-svg-batch" class="button button-primary" disabled>
+				<?php esc_html_e( 'Sanitize Existing SVGs', 'optipress' ); ?>
+			</button>
+		</div>
+
+		<div class="optipress-batch-progress-container" style="margin-top: 20px;">
+			<div id="optipress-svg-batch-progress" class="optipress-progress-bar" style="display: none;">
+				<div class="optipress-progress-fill"></div>
+			</div>
+			<div id="optipress-svg-batch-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
+		</div>
+
+		<div class="notice notice-info inline" style="margin-top: 20px;">
+			<p>
+				<strong><?php esc_html_e( 'Note:', 'optipress' ); ?></strong>
+				<?php esc_html_e( 'This process will re-sanitize all existing SVG files, even if they were already sanitized. The original unsanitized files cannot be recovered.', 'optipress' ); ?>
+			</p>
+		</div>
+	</div>
+
 	<div class="notice notice-warning inline" style="margin-top: 20px;">
 		<p>
 			<strong><?php esc_html_e( 'Important:', 'optipress' ); ?></strong>

@@ -88,6 +88,52 @@
 	padding: 12px;
 }
 
+/* Batch Processing */
+.optipress-batch-section {
+	margin-top: 20px;
+}
+
+.optipress-batch-stats {
+	margin-bottom: 15px;
+}
+
+.optipress-progress-bar {
+	width: 100%;
+	height: 30px;
+	background: #f0f0f1;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	overflow: hidden;
+	position: relative;
+}
+
+.optipress-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #2271b1 0%, #135e96 100%);
+	transition: width 0.3s ease;
+	width: 0;
+	border-radius: 3px;
+}
+
+.optipress-status-text {
+	font-size: 14px;
+	font-weight: 500;
+	padding: 8px 0;
+}
+
+.optipress-status-text.optipress-error {
+	color: #dc3232;
+}
+
+.optipress-batch-controls button {
+	min-width: 160px;
+}
+
+.optipress-batch-controls button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
 	.optipress-quality-slider {
@@ -97,5 +143,12 @@
 
 	.optipress-settings-section {
 		padding: 15px;
+	}
+
+	.optipress-batch-controls button {
+		display: block;
+		width: 100%;
+		margin-left: 0 !important;
+		margin-top: 10px;
 	}
 }

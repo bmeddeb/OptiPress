@@ -136,6 +136,76 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 	</table>
 </div>
 
+<!-- Batch Processing Section -->
+<div class="optipress-settings-section optipress-batch-section">
+	<h2><?php esc_html_e( 'Batch Processing', 'optipress' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Convert all existing images in your media library to the selected format.', 'optipress' ); ?>
+	</p>
+
+	<div class="optipress-batch-stats">
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Metric', 'optipress' ); ?></th>
+					<th><?php esc_html_e( 'Count', 'optipress' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><?php esc_html_e( 'Total Images', 'optipress' ); ?></td>
+					<td><strong id="optipress-total-images">-</strong></td>
+				</tr>
+				<tr>
+					<td><?php esc_html_e( 'Converted Images', 'optipress' ); ?></td>
+					<td><strong id="optipress-converted-images">-</strong></td>
+				</tr>
+				<tr>
+					<td><?php esc_html_e( 'Remaining Images', 'optipress' ); ?></td>
+					<td><strong id="optipress-remaining-images">-</strong></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<div class="optipress-batch-controls" style="margin-top: 20px;">
+		<button type="button" id="optipress-start-batch" class="button button-primary" disabled>
+			<?php esc_html_e( 'Start Bulk Optimization', 'optipress' ); ?>
+		</button>
+
+		<?php if ( $keep_originals ) : ?>
+		<button type="button" id="optipress-revert-batch" class="button button-secondary" disabled style="margin-left: 10px;">
+			<?php esc_html_e( 'Revert All to Originals', 'optipress' ); ?>
+		</button>
+		<?php else : ?>
+		<p class="description" style="margin-top: 10px;">
+			<em><?php esc_html_e( 'Note: Enable "Keep Original Files" to enable revert functionality.', 'optipress' ); ?></em>
+		</p>
+		<?php endif; ?>
+	</div>
+
+	<div class="optipress-batch-progress-container" style="margin-top: 20px;">
+		<div id="optipress-batch-progress" class="optipress-progress-bar" style="display: none;">
+			<div class="optipress-progress-fill"></div>
+		</div>
+		<div id="optipress-batch-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
+
+		<?php if ( $keep_originals ) : ?>
+		<div id="optipress-revert-progress" class="optipress-progress-bar" style="display: none; margin-top: 20px;">
+			<div class="optipress-progress-fill"></div>
+		</div>
+		<div id="optipress-revert-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
+		<?php endif; ?>
+	</div>
+
+	<div class="notice notice-info inline" style="margin-top: 20px;">
+		<p>
+			<strong><?php esc_html_e( 'Performance Note:', 'optipress' ); ?></strong>
+			<?php esc_html_e( 'Batch processing may take several minutes for large media libraries. The process is broken into small chunks to prevent server timeouts. You can safely leave this page during processing - the operation will continue in the background.', 'optipress' ); ?>
+		</p>
+	</div>
+</div>
+
 <script>
 jQuery(document).ready(function($) {
 	// Update quality display

@@ -152,6 +152,15 @@ class Admin_Interface {
 				true
 			);
 
+			// Batch processor script
+			wp_enqueue_script(
+				'optipress-batch-processor',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/batch-processor.js',
+				array( 'jquery', 'optipress-admin' ),
+				OPTIPRESS_VERSION,
+				true
+			);
+
 			// Localize script
 			wp_localize_script(
 				'optipress-admin',
@@ -159,6 +168,20 @@ class Admin_Interface {
 				array(
 					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 					'nonce'   => wp_create_nonce( 'optipress_admin' ),
+					'i18n'    => array(
+						'confirmBatch'      => __( 'Start converting all remaining images? This may take several minutes.', 'optipress' ),
+						'confirmRevert'     => __( 'Delete all converted images and revert to originals? This cannot be undone.', 'optipress' ),
+						'confirmSvgBatch'   => __( 'Sanitize all existing SVG files? This will overwrite the files with sanitized versions.', 'optipress' ),
+						'processing'        => __( 'Processing:', 'optipress' ),
+						'reverting'         => __( 'Reverting:', 'optipress' ),
+						'sanitizing'        => __( 'Sanitizing:', 'optipress' ),
+						'complete'          => __( 'Complete:', 'optipress' ),
+						'error'             => __( 'Error', 'optipress' ),
+						'unknownError'      => __( 'An unknown error occurred.', 'optipress' ),
+						'batchComplete'     => __( 'Successfully converted %d images!', 'optipress' ),
+						'revertComplete'    => __( 'Successfully reverted %d images!', 'optipress' ),
+						'svgBatchComplete'  => __( 'Successfully sanitized %d SVG files!', 'optipress' ),
+					),
 				)
 			);
 		}
