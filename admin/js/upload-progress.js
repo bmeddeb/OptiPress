@@ -7,6 +7,12 @@
 (function($) {
 	'use strict';
 
+	// Track attachments being processed
+	var processingAttachments = {};
+	var pollInterval = null;
+	var sessionSavings = 0;
+	var sessionCount = 0;
+
 	/**
 	 * Initialize upload progress tracking
 	 */
@@ -15,196 +21,270 @@
 			return;
 		}
 
+		// Add savings counter
+		addSavingsCounter();
+
 		// Extend the wp.Uploader to show conversion status
-		wp.Uploader.prototype.init = (function(originalInit) {
-			return function() {
-				originalInit.apply(this, arguments);
+		var originalSuccess = wp.Uploader.prototype.success;
+		wp.Uploader.prototype.success = function(attachment) {
+			originalSuccess.apply(this, arguments);
 
-				// Hook into upload success
-				this.uploader.bind('FileUploaded', function(up, file, response) {
-					handleUploadComplete(file, response);
-				});
-
-				// Hook into upload progress
-				this.uploader.bind('UploadProgress', function(up, file) {
-					showUploadProgress(file);
-				});
-			};
-		})(wp.Uploader.prototype.init);
-
-		/**
-		 * Handle upload complete and show conversion status
-		 */
-		function handleUploadComplete(file, response) {
-			try {
-				var responseData = JSON.parse(response.response);
-
-				if (!responseData.success || !responseData.data) {
-					return;
-				}
-
-				var attachment = responseData.data;
-
-				// Show conversion notification
-				if (attachment.id) {
-					showConversionStatus(file.id, attachment);
-				}
-			} catch (e) {
-				console.error('OptiPress: Error parsing upload response', e);
+			// Track this attachment for status polling
+			if (attachment && attachment.id) {
+				trackAttachment(attachment.id, attachment);
 			}
-		}
+		};
 
-		/**
-		 * Show upload progress
-		 */
-		function showUploadProgress(file) {
-			var $attachment = $('[data-id="' + file.id + '"]');
-
-			if ($attachment.length) {
-				// Add conversion notice
-				if (!$attachment.find('.optipress-converting').length) {
-					$attachment.find('.filename').after(
-						'<div class="optipress-converting" style="color: #999; font-size: 11px; margin-top: 4px;">' +
-						'<span class="spinner is-active" style="float: none; margin: 0 5px 0 0;"></span>' +
-						'Converting to WebP...' +
-						'</div>'
-					);
-				}
-			}
-		}
-
-		/**
-		 * Show conversion status after upload
-		 */
-		function showConversionStatus(fileId, attachment) {
-			var $attachment = $('[data-id="' + fileId + '"]');
-
-			// Remove converting notice
-			$attachment.find('.optipress-converting').remove();
-
-			// Check if conversion data is available
-			if (attachment.filesizeHumanReadable && attachment.filesizeHumanReadable.indexOf('saved') !== -1) {
-				// Extract savings info from the filesizeHumanReadable field
-				var savingsMatch = attachment.filesizeHumanReadable.match(/\(([^)]+saved[^)]+)\)/);
-
-				if (savingsMatch) {
-					var savingsText = savingsMatch[1];
-
-					// Add success notice
-					$attachment.find('.filename').after(
-						'<div class="optipress-converted" style="color: #46b450; font-size: 11px; font-weight: 600; margin-top: 4px;">' +
-						'✓ Converted • ' + savingsText +
-						'</div>'
-					);
-
-					// Fade out after 5 seconds
-					setTimeout(function() {
-						$attachment.find('.optipress-converted').fadeOut(500, function() {
-							$(this).remove();
-						});
-					}, 5000);
-				}
-			}
-		}
-
-		/**
-		 * Add total savings counter to upload page
-		 */
-		if ($('body').hasClass('upload-php') || $('body').hasClass('post-new-php') || $('body').hasClass('post-php')) {
-			addSavingsCounter();
-		}
-
-		/**
-		 * Add savings counter to the page
-		 */
-		function addSavingsCounter() {
-			// Check if counter already exists
-			if ($('#optipress-savings-counter').length) {
-				return;
-			}
-
-			// Add counter to the page
-			var $counter = $('<div id="optipress-savings-counter" style="' +
-				'position: fixed; ' +
-				'bottom: 20px; ' +
-				'right: 20px; ' +
-				'background: #fff; ' +
-				'border: 1px solid #c3c4c7; ' +
-				'border-radius: 4px; ' +
-				'padding: 15px 20px; ' +
-				'box-shadow: 0 2px 5px rgba(0,0,0,0.1); ' +
-				'z-index: 9999; ' +
-				'display: none;' +
-			'">' +
-				'<div style="font-size: 12px; color: #666; margin-bottom: 5px;">OptiPress Session</div>' +
-				'<div style="font-size: 18px; font-weight: 600; color: #46b450;">' +
-					'<span id="optipress-session-savings">0 KB</span> saved' +
-				'</div>' +
-				'<div style="font-size: 11px; color: #999; margin-top: 5px;">' +
-					'<span id="optipress-session-count">0</span> images converted' +
-				'</div>' +
-			'</div>');
-
-			$('body').append($counter);
-
-			// Update counter on new uploads
-			var sessionSavings = 0;
-			var sessionCount = 0;
-
-			$(document).on('DOMNodeInserted', '.optipress-converted', function() {
-				var $notice = $(this);
-				var text = $notice.text();
-
-				// Extract savings amount (e.g., "123.4 KB saved")
-				var match = text.match(/([\d.]+)\s*(KB|MB|GB)\s*saved/i);
-
-				if (match) {
-					var amount = parseFloat(match[1]);
-					var unit = match[2].toUpperCase();
-
-					// Convert to KB
-					if (unit === 'MB') {
-						amount *= 1024;
-					} else if (unit === 'GB') {
-						amount *= 1024 * 1024;
-					}
-
-					sessionSavings += amount;
-					sessionCount++;
-
-					// Update display
-					updateSavingsCounter(sessionSavings, sessionCount);
+		// Also hook into Backbone uploader for media modal
+		if (wp.Uploader.queue) {
+			wp.Uploader.queue.on('add', function(attachment) {
+				if (attachment && attachment.id) {
+					trackAttachment(attachment.id, attachment);
 				}
 			});
 		}
+	});
 
-		/**
-		 * Update savings counter display
-		 */
-		function updateSavingsCounter(savings, count) {
-			var $counter = $('#optipress-savings-counter');
+	/**
+	 * Track attachment for conversion status polling
+	 */
+	function trackAttachment(attachmentId, attachment) {
+		// Check if this is an image that needs conversion
+		var mimeType = attachment.mime || attachment.type;
+		if (!mimeType || (mimeType.indexOf('image/jpeg') === -1 && mimeType.indexOf('image/png') === -1)) {
+			return;
+		}
 
-			if (!$counter.length) {
+		// Add to processing queue
+		processingAttachments[attachmentId] = {
+			id: attachmentId,
+			filename: attachment.filename || attachment.name || 'image',
+			attempts: 0,
+			maxAttempts: 30 // 30 seconds max polling
+		};
+
+		// Show initial status
+		showConversionStatus(attachmentId, 'processing');
+
+		// Start polling if not already running
+		if (!pollInterval) {
+			startPolling();
+		}
+	}
+
+	/**
+	 * Start polling for conversion status
+	 */
+	function startPolling() {
+		pollInterval = setInterval(function() {
+			checkConversionStatuses();
+		}, 1000); // Poll every second
+	}
+
+	/**
+	 * Stop polling
+	 */
+	function stopPolling() {
+		if (pollInterval) {
+			clearInterval(pollInterval);
+			pollInterval = null;
+		}
+	}
+
+	/**
+	 * Check conversion status for all processing attachments
+	 */
+	function checkConversionStatuses() {
+		var attachmentIds = Object.keys(processingAttachments);
+
+		if (attachmentIds.length === 0) {
+			stopPolling();
+			return;
+		}
+
+		// Check each attachment
+		attachmentIds.forEach(function(attachmentId) {
+			var attachment = processingAttachments[attachmentId];
+			attachment.attempts++;
+
+			// Check if max attempts reached
+			if (attachment.attempts >= attachment.maxAttempts) {
+				showConversionStatus(attachmentId, 'timeout');
+				delete processingAttachments[attachmentId];
 				return;
 			}
 
-			// Format savings
-			var formatted;
-			if (savings >= 1024) {
-				formatted = (savings / 1024).toFixed(1) + ' MB';
-			} else {
-				formatted = savings.toFixed(1) + ' KB';
-			}
+			// Poll status
+			pollConversionStatus(attachmentId);
+		});
+	}
 
-			// Update text
-			$('#optipress-session-savings').text(formatted);
-			$('#optipress-session-count').text(count);
+	/**
+	 * Poll conversion status for a single attachment
+	 */
+	function pollConversionStatus(attachmentId) {
+		$.ajax({
+			url: ajaxurl,
+			type: 'POST',
+			data: {
+				action: 'optipress_check_conversion_status',
+				nonce: optipressUpload.nonce,
+				attachment_id: attachmentId
+			},
+			success: function(response) {
+				if (response.success && response.data) {
+					if (response.data.status === 'completed') {
+						// Conversion complete
+						showConversionStatus(attachmentId, 'completed', response.data);
+						delete processingAttachments[attachmentId];
 
-			// Show counter
-			if (count > 0) {
-				$counter.fadeIn(300);
+						// Update session counter
+						updateSessionStats(response.data);
+					} else if (response.data.status === 'processing') {
+						// Still processing - status already showing
+						showConversionStatus(attachmentId, 'processing', response.data);
+					}
+				}
+			},
+			error: function() {
+				// Silently handle errors, will retry on next poll
 			}
+		});
+	}
+
+	/**
+	 * Show conversion status message
+	 */
+	function showConversionStatus(attachmentId, status, data) {
+		// Find attachment in grid view
+		var $attachment = $('.attachment[data-id="' + attachmentId + '"]');
+
+		// Also check media modal
+		if (!$attachment.length) {
+			$attachment = $('.attachment-preview[data-attachment-id="' + attachmentId + '"]').closest('.attachment');
 		}
-	});
+
+		if (!$attachment.length) {
+			return;
+		}
+
+		// Remove existing status
+		$attachment.find('.optipress-status').remove();
+
+		var $status;
+
+		switch (status) {
+			case 'processing':
+				$status = $('<div class="optipress-status optipress-processing">' +
+					'<span class="spinner is-active"></span>' +
+					'<span class="optipress-status-text">' + (data && data.message ? data.message : 'Converting image...') + '</span>' +
+				'</div>');
+				break;
+
+			case 'completed':
+				var message = data && data.message ? data.message : 'Conversion complete';
+				var percentSaved = data && data.percent_saved ? Math.abs(data.percent_saved).toFixed(1) : 0;
+
+				$status = $('<div class="optipress-status optipress-completed">' +
+					'<span class="dashicons dashicons-yes-alt"></span>' +
+					'<span class="optipress-status-text">' + message + '</span>' +
+				'</div>');
+
+				// Fade out after 8 seconds
+				setTimeout(function() {
+					$status.fadeOut(500, function() {
+						$(this).remove();
+					});
+				}, 8000);
+				break;
+
+			case 'timeout':
+				$status = $('<div class="optipress-status optipress-timeout">' +
+					'<span class="dashicons dashicons-warning"></span>' +
+					'<span class="optipress-status-text">Conversion taking longer than expected...</span>' +
+				'</div>');
+
+				// Fade out after 5 seconds
+				setTimeout(function() {
+					$status.fadeOut(500, function() {
+						$(this).remove();
+					});
+				}, 5000);
+				break;
+		}
+
+		if ($status) {
+			// Try to append to different locations depending on view
+			var $target = $attachment.find('.attachment-preview');
+			if (!$target.length) {
+				$target = $attachment;
+			}
+			$target.append($status);
+		}
+	}
+
+	/**
+	 * Update session statistics
+	 */
+	function updateSessionStats(data) {
+		if (data.bytes_saved && data.bytes_saved > 0) {
+			sessionSavings += data.bytes_saved;
+			sessionCount++;
+			updateSavingsCounter();
+		}
+	}
+
+	/**
+	 * Add savings counter to the page
+	 */
+	function addSavingsCounter() {
+		// Check if counter already exists
+		if ($('#optipress-savings-counter').length) {
+			return;
+		}
+
+		// Add counter to the page
+		var $counter = $('<div id="optipress-savings-counter" class="optipress-counter-hidden">' +
+			'<div class="optipress-counter-label">OptiPress Session</div>' +
+			'<div class="optipress-counter-value">' +
+				'<span id="optipress-session-savings">0 KB</span> saved' +
+			'</div>' +
+			'<div class="optipress-counter-count">' +
+				'<span id="optipress-session-count">0</span> images optimized' +
+			'</div>' +
+		'</div>');
+
+		$('body').append($counter);
+	}
+
+	/**
+	 * Update savings counter display
+	 */
+	function updateSavingsCounter() {
+		var $counter = $('#optipress-savings-counter');
+
+		if (!$counter.length) {
+			return;
+		}
+
+		// Format savings
+		var formatted;
+		var savingsKB = sessionSavings / 1024;
+
+		if (savingsKB >= 1024) {
+			formatted = (savingsKB / 1024).toFixed(1) + ' MB';
+		} else {
+			formatted = savingsKB.toFixed(1) + ' KB';
+		}
+
+		// Update text
+		$('#optipress-session-savings').text(formatted);
+		$('#optipress-session-count').text(sessionCount);
+
+		// Show counter
+		if (sessionCount > 0) {
+			$counter.removeClass('optipress-counter-hidden');
+		}
+	}
 
 })(jQuery);

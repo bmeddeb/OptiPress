@@ -78,6 +78,12 @@ class Image_Converter {
 
 		// Hook to clean up converted files when attachment is deleted
 		add_action( 'delete_attachment', array( $this, 'delete_converted_files' ), 10, 1 );
+
+		// AJAX handler for checking conversion status
+		add_action( 'wp_ajax_optipress_check_conversion_status', array( $this, 'ajax_check_conversion_status' ) );
+
+		// Hook to track conversion queue and show summary notices
+		add_action( 'admin_notices', array( $this, 'display_conversion_summary' ) );
 	}
 
 	/**
@@ -202,6 +208,9 @@ class Image_Converter {
 			update_post_meta( $attachment_id, '_optipress_converted_size', $converted_total_size );
 			update_post_meta( $attachment_id, '_optipress_bytes_saved', $bytes_saved );
 			update_post_meta( $attachment_id, '_optipress_percent_saved', round( $percent_saved, 2 ) );
+
+			// Track for summary notice
+			$this->track_conversion_for_summary( $attachment_id, $metadata );
 
 			// Handle "Keep Originals" setting
 			if ( ! $this->should_keep_originals() ) {
@@ -776,5 +785,123 @@ class Image_Converter {
 				}
 			}
 		}
+	}
+
+	/**
+	 * AJAX handler to check conversion status
+	 */
+	public function ajax_check_conversion_status() {
+		// Verify nonce
+		check_ajax_referer( 'optipress_upload', 'nonce' );
+
+		// Get attachment ID
+		$attachment_id = isset( $_POST['attachment_id'] ) ? absint( $_POST['attachment_id'] ) : 0;
+
+		if ( ! $attachment_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid attachment ID.', 'optipress' ) ) );
+		}
+
+		// Check if conversion is complete
+		$is_converted = $this->is_converted( $attachment_id );
+		$conversion_info = $this->get_conversion_info( $attachment_id );
+
+		if ( $is_converted && $conversion_info ) {
+			// Get savings info
+			$bytes_saved = get_post_meta( $attachment_id, '_optipress_bytes_saved', true );
+			$percent_saved = get_post_meta( $attachment_id, '_optipress_percent_saved', true );
+			$format = $conversion_info['format'];
+
+			wp_send_json_success( array(
+				'status'        => 'completed',
+				'format'        => strtoupper( $format ),
+				'bytes_saved'   => $bytes_saved ? absint( $bytes_saved ) : 0,
+				'percent_saved' => $percent_saved ? floatval( $percent_saved ) : 0,
+				'message'       => sprintf(
+					/* translators: 1: Format name, 2: Percentage saved */
+					__( 'Converted to %1$s - Saved %2$s%%', 'optipress' ),
+					strtoupper( $format ),
+					number_format( abs( $percent_saved ), 1 )
+				),
+			) );
+		} else {
+			// Still processing
+			wp_send_json_success( array(
+				'status'  => 'processing',
+				'message' => __( 'Converting image...', 'optipress' ),
+			) );
+		}
+	}
+
+	/**
+	 * Display conversion summary notice
+	 */
+	public function display_conversion_summary() {
+		// Only on media library pages
+		$screen = get_current_screen();
+		if ( ! $screen || 'upload' !== $screen->id ) {
+			return;
+		}
+
+		// Check for conversion summary transient
+		$summary = get_transient( 'optipress_conversion_summary_' . get_current_user_id() );
+
+		if ( ! $summary ) {
+			return;
+		}
+
+		// Delete transient so it only shows once
+		delete_transient( 'optipress_conversion_summary_' . get_current_user_id() );
+
+		// Display notice
+		$total = isset( $summary['total'] ) ? $summary['total'] : 0;
+		$converted = isset( $summary['converted'] ) ? $summary['converted'] : 0;
+		$bytes_saved = isset( $summary['bytes_saved'] ) ? $summary['bytes_saved'] : 0;
+
+		if ( $converted > 0 ) {
+			printf(
+				'<div class="notice notice-success is-dismissible"><p><strong>%s</strong> %s</p></div>',
+				esc_html__( 'OptiPress:', 'optipress' ),
+				sprintf(
+					/* translators: 1: Number of images converted, 2: Total images uploaded, 3: Space saved */
+					esc_html__( 'Successfully optimized %1$d of %2$d uploaded images, saving %3$s.', 'optipress' ),
+					$converted,
+					$total,
+					size_format( $bytes_saved )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Track conversion in queue for summary notice
+	 *
+	 * @param int   $attachment_id Attachment ID.
+	 * @param array $metadata      Attachment metadata.
+	 */
+	public function track_conversion_for_summary( $attachment_id, $metadata ) {
+		// Get or create summary transient
+		$summary = get_transient( 'optipress_conversion_summary_' . get_current_user_id() );
+
+		if ( ! $summary ) {
+			$summary = array(
+				'total'       => 0,
+				'converted'   => 0,
+				'bytes_saved' => 0,
+			);
+		}
+
+		$summary['total']++;
+
+		// Check if conversion was successful
+		if ( $this->is_converted( $attachment_id ) ) {
+			$summary['converted']++;
+			$bytes_saved = get_post_meta( $attachment_id, '_optipress_bytes_saved', true );
+			if ( $bytes_saved > 0 ) {
+				$summary['bytes_saved'] += $bytes_saved;
+			}
+		}
+
+		// Store for 5 minutes
+		set_transient( 'optipress_conversion_summary_' . get_current_user_id(), $summary, 300 );
 	}
 }
