@@ -94,35 +94,63 @@ class Admin_Interface {
 	 * @return array Sanitized settings.
 	 */
 	public function sanitize_settings( $input ) {
-		$sanitized = array();
+		// Get existing options to preserve values not in current form submission
+		$existing = get_option( 'optipress_options', array() );
 
-		// Engine
-		$allowed_engines = array( 'auto', 'gd', 'imagick' );
-		$sanitized['engine'] = isset( $input['engine'] ) && in_array( $input['engine'], $allowed_engines, true )
-			? $input['engine']
-			: 'auto';
+		// Start with existing values
+		$sanitized = wp_parse_args( $existing, array(
+			'engine'          => 'auto',
+			'format'          => 'webp',
+			'quality'         => 85,
+			'auto_convert'    => true,
+			'keep_originals'  => true,
+			'svg_enabled'     => false,
+			'delivery_method' => 'htaccess',
+		) );
 
-		// Format
-		$allowed_formats = array( 'webp', 'avif' );
-		$sanitized['format'] = isset( $input['format'] ) && in_array( $input['format'], $allowed_formats, true )
-			? $input['format']
-			: 'webp';
+		// Engine (only update if present in input)
+		if ( isset( $input['engine'] ) ) {
+			$allowed_engines = array( 'auto', 'gd', 'imagick' );
+			$sanitized['engine'] = in_array( $input['engine'], $allowed_engines, true )
+				? $input['engine']
+				: $sanitized['engine'];
+		}
 
-		// Quality
-		$sanitized['quality'] = isset( $input['quality'] )
-			? max( 1, min( 100, intval( $input['quality'] ) ) )
-			: 85;
+		// Format (only update if present in input)
+		if ( isset( $input['format'] ) ) {
+			$allowed_formats = array( 'webp', 'avif' );
+			$sanitized['format'] = in_array( $input['format'], $allowed_formats, true )
+				? $input['format']
+				: $sanitized['format'];
+		}
 
-		// Boolean options
-		$sanitized['auto_convert']    = isset( $input['auto_convert'] ) && $input['auto_convert'];
-		$sanitized['keep_originals']  = isset( $input['keep_originals'] ) && $input['keep_originals'];
-		$sanitized['svg_enabled']     = isset( $input['svg_enabled'] ) && $input['svg_enabled'];
+		// Quality (only update if present in input)
+		if ( isset( $input['quality'] ) ) {
+			$sanitized['quality'] = max( 1, min( 100, intval( $input['quality'] ) ) );
+		}
 
-		// Delivery method
-		$allowed_delivery = array( 'htaccess', 'content_filter', 'both' );
-		$sanitized['delivery_method'] = isset( $input['delivery_method'] ) && in_array( $input['delivery_method'], $allowed_delivery, true )
-			? $input['delivery_method']
-			: 'htaccess';
+		// Boolean options - these are tricky because unchecked checkboxes don't send any value
+		// We need to detect if we're on the tab that contains these fields
+		// Optimization tab fields
+		if ( isset( $input['auto_convert'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+			$sanitized['auto_convert'] = isset( $input['auto_convert'] ) && $input['auto_convert'];
+		}
+		if ( isset( $input['keep_originals'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+			$sanitized['keep_originals'] = isset( $input['keep_originals'] ) && $input['keep_originals'];
+		}
+
+		// SVG tab fields
+		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=svg' ) !== false ) ) {
+			$sanitized['svg_enabled'] = isset( $input['svg_enabled'] ) && $input['svg_enabled'];
+		}
+
+		// Delivery method (only update if present in input)
+		if ( isset( $input['delivery_method'] ) ) {
+			$allowed_delivery = array( 'htaccess', 'content_filter', 'both' );
+			$sanitized['delivery_method'] = in_array( $input['delivery_method'], $allowed_delivery, true )
+				? $input['delivery_method']
+				: $sanitized['delivery_method'];
+		}
 
 		return $sanitized;
 	}
