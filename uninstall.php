@@ -16,20 +16,29 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  * Delete plugin options
  */
 delete_option( 'optipress_options' );
+delete_option( 'optipress_security_log' );
 
 /**
- * Delete plugin metadata from all attachments
+ * Delete all plugin metadata from attachments
+ *
+ * Removes all _optipress_* meta keys including:
+ * - _optipress_converted
+ * - _optipress_format
+ * - _optipress_engine
+ * - _optipress_converted_sizes
+ * - _optipress_conversion_date
+ * - _optipress_original_size
+ * - _optipress_converted_size
+ * - _optipress_bytes_saved
+ * - _optipress_percent_saved
+ * - _optipress_errors
  */
 global $wpdb;
 
-// Delete image conversion metadata
+// Delete all _optipress_* metadata using wildcard
 $wpdb->query(
 	"DELETE FROM {$wpdb->postmeta}
-	WHERE meta_key IN (
-		'_optipress_converted',
-		'_optipress_format',
-		'_optipress_engine'
-	)"
+	WHERE meta_key LIKE '_optipress_%'"
 );
 
 /**
@@ -46,16 +55,17 @@ $wpdb->query(
 $upload_dir = wp_upload_dir();
 $base_dir = $upload_dir['basedir'];
 
-// Get all attachments that were converted by OptiPress
-$converted_attachments = $wpdb->get_results(
-	"SELECT post_id FROM {$wpdb->postmeta}
-	WHERE meta_key = '_optipress_converted' AND meta_value = '1'"
+// Get all attachments with JPG/PNG mime types
+$attachments = $wpdb->get_results(
+	"SELECT ID FROM {$wpdb->posts}
+	WHERE post_type = 'attachment'
+	AND post_mime_type IN ('image/jpeg', 'image/png')"
 );
 
-foreach ( $converted_attachments as $attachment ) {
-	$file_path = get_attached_file( $attachment->post_id );
+foreach ( $attachments as $attachment ) {
+	$file_path = get_attached_file( $attachment->ID );
 
-	if ( $file_path ) {
+	if ( $file_path && file_exists( $file_path ) ) {
 		// Delete WebP version
 		$webp_path = preg_replace( '/\.(jpg|jpeg|png)$/i', '.webp', $file_path );
 		if ( file_exists( $webp_path ) ) {
@@ -69,7 +79,7 @@ foreach ( $converted_attachments as $attachment ) {
 		}
 
 		// Handle image sizes (thumbnails, medium, large, etc.)
-		$metadata = wp_get_attachment_metadata( $attachment->post_id );
+		$metadata = wp_get_attachment_metadata( $attachment->ID );
 		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ) {
 			$upload_dir = dirname( $file_path );
 

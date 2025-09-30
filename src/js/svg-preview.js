@@ -36,13 +36,36 @@ import DOMPurify from 'dompurify';
 		 */
 		setupDOMPurify: function() {
 			// Configure DOMPurify for SVG files
+			// Note: We allow xlink:href for legitimate SVG links but sanitize the values
 			this.purifyConfig = {
 				WHOLE_DOCUMENT: true,
 				USE_PROFILES: { svg: true },
 				FORBID_TAGS: ['foreignObject', 'script'],
-				FORBID_ATTR: [/^on/i, 'style', 'xlink:href'],
-				ALLOWED_URI_REGEXP: /^(https?:|#)/i
+				FORBID_ATTR: [/^on/i], // Only block event handlers
+				ALLOWED_URI_REGEXP: /^(https?:|#|data:image)/i, // Allow safe URIs
+				ADD_TAGS: ['use'], // Explicitly allow <use> tags
+				ADD_ATTR: ['xlink:href', 'href'] // Allow these attributes (DOMPurify will sanitize values)
 			};
+
+			// Add a hook to sanitize xlink:href and href values
+			DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+				// Check xlink:href
+				if (node.hasAttribute('xlink:href')) {
+					var href = node.getAttribute('xlink:href');
+					// Block javascript: and data: URIs (except safe images)
+					if (href && (href.match(/^javascript:/i) || (href.match(/^data:/i) && !href.match(/^data:image/i)))) {
+						node.removeAttribute('xlink:href');
+					}
+				}
+
+				// Check href
+				if (node.hasAttribute('href')) {
+					var href = node.getAttribute('href');
+					if (href && (href.match(/^javascript:/i) || (href.match(/^data:/i) && !href.match(/^data:image/i)))) {
+						node.removeAttribute('href');
+					}
+				}
+			});
 		},
 
 		/**
@@ -51,13 +74,32 @@ import DOMPurify from 'dompurify';
 		bindEvents: function() {
 			var self = this;
 
-			// Hook into WordPress media uploader
+			// Hook into WordPress media uploader using Backbone events
 			if (typeof wp !== 'undefined' && wp.media) {
-				// Hook into media uploader frame
-				wp.media.view.Attachment.Details = wp.media.view.Attachment.Details.extend({
+				// Store original Details view
+				var OriginalDetails = wp.media.view.Attachment.Details;
+
+				// Extend (don't replace) the Details view
+				wp.media.view.Attachment.Details = OriginalDetails.extend({
 					initialize: function() {
-						wp.media.view.Attachment.Details.__super__.initialize.apply(this, arguments);
-						self.handleMediaAttachment(this.model);
+						// Call parent initialize
+						OriginalDetails.prototype.initialize.apply(this, arguments);
+
+						// Hook into model changes for SVG files
+						if (this.model) {
+							this.listenTo(this.model, 'change:url', function() {
+								if (this.model.get('subtype') === 'svg+xml') {
+									self.handleMediaAttachment(this.model);
+								}
+							});
+
+							// Check immediately if already loaded
+							if (this.model.get('subtype') === 'svg+xml' && this.model.get('url')) {
+								setTimeout(function() {
+									self.handleMediaAttachment(this.model);
+								}.bind(this), 100);
+							}
+						}
 					}
 				});
 			}
@@ -65,6 +107,20 @@ import DOMPurify from 'dompurify';
 			// Also handle direct file input (non-media library uploads)
 			$(document).on('change', 'input[type="file"][accept*="svg"]', function(e) {
 				self.handleFileInput(e.target);
+			});
+
+			// Handle file drop events
+			$(document).on('drop', '.uploader-inline, .media-frame', function(e) {
+				var files = e.originalEvent.dataTransfer?.files;
+				if (files) {
+					for (var i = 0; i < files.length; i++) {
+						if (files[i].type === 'image/svg+xml') {
+							setTimeout(function(file) {
+								self.handleFileObject(file);
+							}.bind(null, files[i]), 500);
+						}
+					}
+				}
 			});
 		},
 
@@ -78,7 +134,7 @@ import DOMPurify from 'dompurify';
 
 			var url = model.get('url');
 			if (url) {
-				this.fetchAndPreviewSVG(url, model);
+				this.fetchAndPreviewSVG(url, model.get('filename') || 'svg-file.svg');
 			}
 		},
 
@@ -95,6 +151,13 @@ import DOMPurify from 'dompurify';
 				return;
 			}
 
+			this.handleFileObject(file);
+		},
+
+		/**
+		 * Handle file object
+		 */
+		handleFileObject: function(file) {
 			var self = this;
 			var reader = new FileReader();
 
@@ -109,7 +172,7 @@ import DOMPurify from 'dompurify';
 		/**
 		 * Fetch SVG content from URL
 		 */
-		fetchAndPreviewSVG: function(url, model) {
+		fetchAndPreviewSVG: function(url, filename) {
 			var self = this;
 
 			$.ajax({
@@ -117,7 +180,7 @@ import DOMPurify from 'dompurify';
 				type: 'GET',
 				dataType: 'text',
 				success: function(svgContent) {
-					self.showPreview(svgContent, model.get('filename'));
+					self.showPreview(svgContent, filename);
 				},
 				error: function() {
 					console.warn('OptiPress: Failed to fetch SVG for preview');
@@ -179,6 +242,8 @@ import DOMPurify from 'dompurify';
 				if (e.target === this) {
 					$modal.fadeOut(200, function() {
 						$modal.remove();
+						// Clean up DOMPurify hooks
+						DOMPurify.removeAllHooks();
 					});
 				}
 			});

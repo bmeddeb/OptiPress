@@ -92,7 +92,14 @@ class GD_Engine implements ImageEngineInterface {
 
 		// Check file size - skip very large files
 		$file_size = filesize( $source_path );
-		if ( $file_size > 10485760 ) { // 10MB
+		/**
+		 * Filter the maximum file size for GD conversion.
+		 *
+		 * @param int $max_filesize Maximum file size in bytes. Default 10485760 (10MB).
+		 */
+		$max_filesize = apply_filters( 'optipress_max_filesize_bytes', 10485760 );
+
+		if ( $file_size > $max_filesize ) {
 			error_log( sprintf(
 				'OptiPress GD: File too large for safe conversion: %s (%s)',
 				basename( $source_path ),
@@ -117,8 +124,15 @@ class GD_Engine implements ImageEngineInterface {
 		$height = imagesy( $image_resource );
 		$pixels = $width * $height;
 
-		// Skip extremely large images (> 25 megapixels)
-		if ( $pixels > 25000000 ) {
+		/**
+		 * Filter the maximum pixel count for GD conversion.
+		 *
+		 * @param int $max_pixels Maximum pixels (width * height). Default 25000000 (25 megapixels).
+		 */
+		$max_pixels = apply_filters( 'optipress_max_pixels', 25000000 );
+
+		// Skip extremely large images
+		if ( $pixels > $max_pixels ) {
 			error_log( sprintf(
 				'OptiPress GD: Image dimensions too large: %dx%d (%s pixels)',
 				$width,

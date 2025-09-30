@@ -3,6 +3,7 @@
  * Content Filter Class
  *
  * Handles front-end delivery of optimized images by filtering post content.
+ * Uses WP_HTML_Tag_Processor (WP 6.2+) for safe HTML manipulation.
  *
  * @package OptiPress
  */
@@ -39,6 +40,13 @@ class Content_Filter {
 	 * @var array
 	 */
 	private $upload_dir = array();
+
+	/**
+	 * Static cache for file existence checks
+	 *
+	 * @var array
+	 */
+	private static $file_cache = array();
 
 	/**
 	 * Get singleton instance
@@ -107,6 +115,8 @@ class Content_Filter {
 	/**
 	 * Get browser supported format based on Accept header
 	 *
+	 * Implements format fallback: AVIF → WebP → none
+	 *
 	 * @return string|false Format (webp/avif) or false if not supported.
 	 */
 	private function get_browser_supported_format() {
@@ -114,29 +124,94 @@ class Content_Filter {
 		$configured_format = isset( $this->options['format'] ) ? $this->options['format'] : 'webp';
 
 		// Check Accept header
-		$accept = isset( $_SERVER['HTTP_ACCEPT'] ) ? $_SERVER['HTTP_ACCEPT'] : '';
+		$accept = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : '';
 
-		// Check for AVIF support first (better compression)
-		if ( 'avif' === $configured_format && strpos( $accept, 'image/avif' ) !== false ) {
-			return 'avif';
+		$supports_avif = strpos( $accept, 'image/avif' ) !== false;
+		$supports_webp = strpos( $accept, 'image/webp' ) !== false;
+
+		// Determine format with fallback logic
+		$format = false;
+
+		if ( 'avif' === $configured_format ) {
+			// Prefer AVIF if configured and supported
+			if ( $supports_avif ) {
+				$format = 'avif';
+			} elseif ( $supports_webp ) {
+				// Fallback to WebP if AVIF not supported
+				$format = 'webp';
+			}
+		} elseif ( 'webp' === $configured_format ) {
+			// Use WebP if configured and supported
+			if ( $supports_webp ) {
+				$format = 'webp';
+			}
 		}
 
-		// Check for WebP support
-		if ( strpos( $accept, 'image/webp' ) !== false ) {
-			return 'webp';
-		}
-
-		return false;
+		/**
+		 * Filter the detected client format.
+		 *
+		 * Useful for proxy/CDN scenarios where Accept header may not be reliable.
+		 *
+		 * @param string|false $format           Detected format or false.
+		 * @param string       $configured_format Configured format from settings.
+		 * @param string       $accept            HTTP Accept header.
+		 */
+		return apply_filters( 'optipress_client_format', $format, $configured_format, $accept );
 	}
 
 	/**
-	 * Replace image URLs in content
+	 * Replace image URLs in content using WP_HTML_Tag_Processor
 	 *
 	 * @param string $content Content with images.
 	 * @param string $format  Target format (webp/avif).
 	 * @return string Content with replaced URLs.
 	 */
 	private function replace_image_urls( $content, $format ) {
+		// Use WP_HTML_Tag_Processor for safe HTML manipulation (WP 6.2+)
+		if ( ! class_exists( 'WP_HTML_Tag_Processor' ) ) {
+			// Fallback to regex for older WP versions (shouldn't happen with WP 6.7+ requirement)
+			return $this->replace_image_urls_regex( $content, $format );
+		}
+
+		$processor = new \WP_HTML_Tag_Processor( $content );
+
+		while ( $processor->next_tag( 'img' ) ) {
+			// Process src attribute
+			$src = $processor->get_attribute( 'src' );
+
+			if ( $src && $this->should_optimize_image( $src ) ) {
+				$optimized_src = $this->get_optimized_url( $src, $format );
+
+				if ( $this->file_exists_from_url( $optimized_src ) ) {
+					$processor->set_attribute( 'src', $optimized_src );
+				}
+			}
+
+			// Process srcset attribute
+			$srcset = $processor->get_attribute( 'srcset' );
+
+			if ( $srcset ) {
+				$optimized_srcset = $this->convert_srcset( $srcset, $format );
+
+				if ( $optimized_srcset !== $srcset ) {
+					$processor->set_attribute( 'srcset', $optimized_srcset );
+				}
+			}
+		}
+
+		return $processor->get_updated_html();
+	}
+
+	/**
+	 * Fallback regex-based image URL replacement
+	 *
+	 * Used only if WP_HTML_Tag_Processor is not available.
+	 *
+	 * @param string $content Content with images.
+	 * @param string $format  Target format.
+	 * @return string Content with replaced URLs.
+	 */
+	private function replace_image_urls_regex( $content, $format ) {
 		// Match all img tags
 		$pattern = '/<img([^>]+)>/i';
 
@@ -152,7 +227,7 @@ class Content_Filter {
 	}
 
 	/**
-	 * Process individual img tag
+	 * Process individual img tag (regex fallback)
 	 *
 	 * @param string $img_tag Original img tag.
 	 * @param string $format  Target format.
@@ -166,13 +241,8 @@ class Content_Filter {
 
 		$original_src = $src_match[1];
 
-		// Check if this is a local image from uploads directory
-		if ( ! $this->is_local_upload( $original_src ) ) {
-			return $img_tag;
-		}
-
-		// Check if this is a convertible format (jpg, png)
-		if ( ! $this->is_convertible_image( $original_src ) ) {
+		// Check if should optimize
+		if ( ! $this->should_optimize_image( $original_src ) ) {
 			return $img_tag;
 		}
 
@@ -201,6 +271,16 @@ class Content_Filter {
 	}
 
 	/**
+	 * Check if image should be optimized
+	 *
+	 * @param string $url Image URL.
+	 * @return bool True if should optimize.
+	 */
+	private function should_optimize_image( $url ) {
+		return $this->is_local_upload( $url ) && $this->is_convertible_image( $url );
+	}
+
+	/**
 	 * Convert srcset attribute
 	 *
 	 * @param string $srcset Original srcset.
@@ -224,8 +304,8 @@ class Content_Filter {
 			$url = $parts[0];
 			$descriptor = isset( $parts[1] ) ? ' ' . $parts[1] : '';
 
-			// Check if local and convertible
-			if ( $this->is_local_upload( $url ) && $this->is_convertible_image( $url ) ) {
+			// Check if should optimize
+			if ( $this->should_optimize_image( $url ) ) {
 				$optimized_url = $this->get_optimized_url( $url, $format );
 
 				// Only use optimized version if file exists
@@ -243,13 +323,111 @@ class Content_Filter {
 	}
 
 	/**
-	 * Replace images with picture elements
+	 * Replace images with picture elements using WP_HTML_Tag_Processor
 	 *
 	 * @param string $content Content with images.
 	 * @param string $format  Target format.
 	 * @return string Content with picture elements.
 	 */
 	private function replace_with_picture_elements( $content, $format ) {
+		// Use WP_HTML_Tag_Processor for safe HTML manipulation
+		if ( ! class_exists( 'WP_HTML_Tag_Processor' ) ) {
+			// Fallback to regex for older WP versions
+			return $this->replace_with_picture_elements_regex( $content, $format );
+		}
+
+		$processor = new \WP_HTML_Tag_Processor( $content );
+		$replacements = array();
+
+		// First pass: collect all img tags that need replacement
+		while ( $processor->next_tag( 'img' ) ) {
+			$src = $processor->get_attribute( 'src' );
+
+			if ( ! $src || ! $this->should_optimize_image( $src ) ) {
+				continue;
+			}
+
+			$optimized_src = $this->get_optimized_url( $src, $format );
+
+			if ( ! $this->file_exists_from_url( $optimized_src ) ) {
+				continue;
+			}
+
+			// Get the full img tag
+			$img_tag = $processor->get_updated_html();
+			$start = $processor->get_token_start();
+			$length = $processor->get_token_length();
+
+			// Store replacement
+			$replacements[] = array(
+				'start'  => $start,
+				'length' => $length,
+				'old'    => substr( $img_tag, $start, $length ),
+				'new'    => $this->create_picture_element_from_attributes( $processor, $format ),
+			);
+		}
+
+		// Second pass: apply replacements (in reverse order to maintain positions)
+		$modified_content = $content;
+		foreach ( array_reverse( $replacements ) as $replacement ) {
+			$modified_content = substr_replace(
+				$modified_content,
+				$replacement['new'],
+				$replacement['start'],
+				$replacement['length']
+			);
+		}
+
+		return $modified_content;
+	}
+
+	/**
+	 * Create picture element from WP_HTML_Tag_Processor attributes
+	 *
+	 * @param \WP_HTML_Tag_Processor $processor Tag processor at img tag.
+	 * @param string                 $format   Target format.
+	 * @return string Picture element HTML.
+	 */
+	private function create_picture_element_from_attributes( $processor, $format ) {
+		$src = $processor->get_attribute( 'src' );
+		$srcset = $processor->get_attribute( 'srcset' );
+
+		$optimized_src = $this->get_optimized_url( $src, $format );
+		$mime_type = 'avif' === $format ? 'image/avif' : 'image/webp';
+
+		// Build picture element
+		$picture = '<picture>';
+
+		if ( $srcset ) {
+			$optimized_srcset = $this->convert_srcset( $srcset, $format );
+			$picture .= sprintf( '<source srcset="%s" type="%s">', esc_attr( $optimized_srcset ), esc_attr( $mime_type ) );
+		} else {
+			$picture .= sprintf( '<source srcset="%s" type="%s">', esc_url( $optimized_src ), esc_attr( $mime_type ) );
+		}
+
+		// Rebuild img tag from processor
+		$img_attributes = array();
+		foreach ( $processor->get_attribute_names() as $attr_name ) {
+			$attr_value = $processor->get_attribute( $attr_name );
+			if ( null !== $attr_value ) {
+				$img_attributes[] = sprintf( '%s="%s"', $attr_name, esc_attr( $attr_value ) );
+			}
+		}
+
+		$picture .= '<img ' . implode( ' ', $img_attributes ) . '>';
+		$picture .= '</picture>';
+
+		return $picture;
+	}
+
+	/**
+	 * Fallback regex-based picture element replacement
+	 *
+	 * @param string $content Content with images.
+	 * @param string $format  Target format.
+	 * @return string Content with picture elements.
+	 */
+	private function replace_with_picture_elements_regex( $content, $format ) {
 		// Match all img tags
 		$pattern = '/<img([^>]+)>/i';
 
@@ -265,7 +443,7 @@ class Content_Filter {
 	}
 
 	/**
-	 * Create picture element from img tag
+	 * Create picture element from img tag (regex fallback)
 	 *
 	 * @param string $img_tag Original img tag.
 	 * @param string $format  Target format.
@@ -279,13 +457,8 @@ class Content_Filter {
 
 		$original_src = $src_match[1];
 
-		// Check if this is a local image from uploads directory
-		if ( ! $this->is_local_upload( $original_src ) ) {
-			return $img_tag;
-		}
-
-		// Check if this is a convertible format
-		if ( ! $this->is_convertible_image( $original_src ) ) {
+		// Check if should optimize
+		if ( ! $this->should_optimize_image( $original_src ) ) {
 			return $img_tag;
 		}
 
@@ -352,14 +525,24 @@ class Content_Filter {
 	}
 
 	/**
-	 * Check if file exists from URL
+	 * Check if file exists from URL with static caching
 	 *
 	 * @param string $url File URL.
 	 * @return bool True if file exists.
 	 */
 	private function file_exists_from_url( $url ) {
+		// Check static cache first
+		if ( isset( self::$file_cache[ $url ] ) ) {
+			return self::$file_cache[ $url ];
+		}
+
 		$file_path = $this->url_to_path( $url );
-		return $file_path && file_exists( $file_path );
+		$exists = $file_path && file_exists( $file_path );
+
+		// Cache result
+		self::$file_cache[ $url ] = $exists;
+
+		return $exists;
 	}
 
 	/**
