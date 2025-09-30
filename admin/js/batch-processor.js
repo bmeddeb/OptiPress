@@ -319,6 +319,12 @@
 				'<span>' + message + '</span>' +
 				'</div>'
 			).show();
+
+			// Auto-hide after 7 seconds
+			setTimeout(function() {
+				var $notice = $container.find('.optipress-local-notice');
+				$notice.fadeOut(200, function() { $(this).remove(); });
+			}, 7000);
 		},
 
 		/**
