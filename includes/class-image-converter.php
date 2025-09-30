@@ -227,13 +227,47 @@ class Image_Converter {
 	/**
 	 * Convert a single image file
 	 *
-	 * @param string                              $source_path Path to source image.
-	 * @param string                              $format      Target format.
-	 * @param \OptiPress\Engines\ImageEngineInterface $engine      Conversion engine.
-	 * @param int                                 $attachment_id Attachment ID for logging.
+	 * This method is public so it can be used by the batch processor. If
+	 * $format or $engine are not provided the method will resolve them from
+	 * plugin settings.
+	 *
+	 * @param string                              $source_path   Path to source image.
+	 * @param string|null                         $format        Target format (e.g. 'webp' or 'avif').
+	 * @param \OptiPress\Engines\ImageEngineInterface|null $engine        Conversion engine instance.
+	 * @param int                                 $attachment_id Attachment ID for logging (optional).
 	 * @return bool Whether conversion was successful.
 	 */
-	private function convert_image( $source_path, $format, $engine, $attachment_id ) {
+	public function convert_image( $source_path, $format = null, $engine = null, $attachment_id = 0 ) {
+		// Resolve target format from settings if not provided
+		if ( null === $format ) {
+			$format = $this->get_target_format();
+		}
+
+		// Resolve engine from registry if not provided
+		if ( null === $engine ) {
+			$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+			$engine   = $registry->get_engine_from_settings( $format );
+
+			if ( null === $engine ) {
+				// Prefer to attach error to the post when we have an attachment ID
+				if ( $attachment_id ) {
+					$this->log_error(
+						$attachment_id,
+						sprintf(
+							/* translators: %s: Format name */
+							__( 'No available engine supports %s format.', 'optipress' ),
+							strtoupper( $format )
+						)
+					);
+				} else {
+					if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+						error_log( sprintf( 'OptiPress: No available engine supports %s format.', strtoupper( $format ) ) );
+					}
+				}
+
+				return false;
+			}
+		}
 		// Generate destination path
 		$path_info = pathinfo( $source_path );
 		$dest_path = trailingslashit( $path_info['dirname'] ) . $path_info['filename'] . '.' . $format;

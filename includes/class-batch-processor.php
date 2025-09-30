@@ -262,8 +262,8 @@ class Batch_Processor {
 				continue;
 			}
 
-			// Process main image
-			$success = $converter->convert_image( $file_path );
+			// Process main image (pass attachment ID for proper logging)
+			$success = $converter->convert_image( $file_path, null, null, $image_id );
 
 			// Process image sizes
 			if ( ! empty( $metadata['sizes'] ) ) {
@@ -273,7 +273,7 @@ class Batch_Processor {
 				foreach ( $metadata['sizes'] as $size => $size_data ) {
 					$size_file = $base_dir . $size_data['file'];
 					if ( file_exists( $size_file ) ) {
-						$converter->convert_image( $size_file );
+						$converter->convert_image( $size_file, null, null, $image_id );
 					}
 				}
 			}
