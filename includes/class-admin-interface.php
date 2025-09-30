@@ -250,7 +250,7 @@ class Admin_Interface {
 			wp_enqueue_script(
 				'optipress-upload-progress',
 				OPTIPRESS_PLUGIN_URL . 'admin/js/upload-progress.js',
-				array( 'jquery', 'media-upload' ),
+				array( 'jquery', 'media-views', 'media-upload', 'wp-util' ),
 				OPTIPRESS_VERSION,
 				true
 			);

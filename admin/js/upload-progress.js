@@ -12,6 +12,34 @@
 	var pollInterval = null;
 	var sessionSavings = 0;
 	var sessionCount = 0;
+	var DEBUG = !!window.OPTIPRESS_DEBUG;
+
+	function log(){ if (DEBUG && window.console && console.log) { console.log.apply(console, arguments); } }
+
+	function deriveMimeFromFilename(name){
+		if (!name) return '';
+		var m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
+		if (!m) return '';
+		switch(m[1]){
+			case 'jpg':
+			case 'jpeg': return 'image/jpeg';
+			case 'png': return 'image/png';
+			default: return '';
+		}
+	}
+
+	function getAttachmentMime(att){
+		if (!att) return '';
+		if (att.mime) return att.mime;
+		if (att.type && att.subtype) return (att.type + '/' + att.subtype).toLowerCase();
+		return deriveMimeFromFilename(att.filename || att.name || '');
+	}
+
+	function isConvertibleMime(mime){
+		if (!mime) return false;
+		mime = mime.toLowerCase();
+		return mime === 'image/jpeg' || mime === 'image/png';
+	}
 
 	/**
 	 * Initialize upload progress tracking
@@ -28,7 +56,7 @@
 		var originalSuccess = wp.Uploader.prototype.success;
 		wp.Uploader.prototype.success = function(attachment) {
 			originalSuccess.apply(this, arguments);
-
+			if (DEBUG) log('OptiPress uploader success:', attachment);
 			// Track this attachment for status polling
 			if (attachment && attachment.id) {
 				trackAttachment(attachment.id, attachment);
@@ -49,11 +77,9 @@
 	 * Track attachment for conversion status polling
 	 */
 	function trackAttachment(attachmentId, attachment) {
-		// Check if this is an image that needs conversion
-		var mimeType = attachment.mime || attachment.type;
-		if (!mimeType || (mimeType.indexOf('image/jpeg') === -1 && mimeType.indexOf('image/png') === -1)) {
-			return;
-		}
+		var mimeType = getAttachmentMime(attachment);
+		if (DEBUG) log('OptiPress trackAttachment:', attachmentId, mimeType, attachment);
+		if (!isConvertibleMime(mimeType)) return;
 
 		// Add to processing queue
 		processingAttachments[attachmentId] = {
@@ -155,7 +181,8 @@
 	/**
 	 * Show conversion status message
 	 */
-	function showConversionStatus(attachmentId, status, data) {
+	function showConversionStatus(attachmentId, status, data, retry) {
+		retry = retry || 0;
 		// Find attachment in grid view
 		var $attachment = $('.attachment[data-id="' + attachmentId + '"]');
 
@@ -165,6 +192,9 @@
 		}
 
 		if (!$attachment.length) {
+			if (retry < 5) {
+				return setTimeout(function(){ showConversionStatus(attachmentId, status, data, retry + 1); }, 150);
+			}
 			return;
 		}
 
