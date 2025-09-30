@@ -87,13 +87,17 @@
 			id: attachmentId,
 			filename: attachment.filename || attachment.name || 'image',
 			attempts: 0,
-			maxAttempts: 30 // 30 seconds max polling
+			maxAttempts: 30, // 30 seconds max polling
+			fastPollUntil: Date.now() + 5000 // Fast poll for first 5 seconds
 		};
 
-		// Show initial status
+		// Show initial status immediately
 		showConversionStatus(attachmentId, 'processing');
 
-		// Start polling if not already running
+		// Start polling immediately (don't wait 1 second)
+		pollConversionStatus(attachmentId);
+
+		// Start polling interval if not already running
 		if (!pollInterval) {
 			startPolling();
 		}
@@ -103,9 +107,19 @@
 	 * Start polling for conversion status
 	 */
 	function startPolling() {
+		// Use faster polling for first few seconds to catch quick conversions
+		var pollCount = 0;
+
 		pollInterval = setInterval(function() {
+			pollCount++;
 			checkConversionStatuses();
-		}, 1000); // Poll every second
+
+			// Switch to slower polling after 10 fast polls (2 seconds)
+			if (pollCount === 10 && pollInterval) {
+				clearInterval(pollInterval);
+				pollInterval = setInterval(checkConversionStatuses, 1000);
+			}
+		}, 200); // Poll every 200ms initially
 	}
 
 	/**
@@ -170,6 +184,10 @@
 					} else if (response.data.status === 'processing') {
 						// Still processing - status already showing
 						showConversionStatus(attachmentId, 'processing', response.data);
+					} else if (response.data.status === 'not_applicable') {
+						// Not a convertible image or conversion disabled
+						delete processingAttachments[attachmentId];
+						// Don't show any status for non-convertible images
 					}
 				}
 			},

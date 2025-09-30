@@ -425,3 +425,184 @@
 		padding: 6px 8px;
 	}
 }
+
+/* ========================================
+   Attachment Edit Meta Box Styles
+   ======================================== */
+
+#optipress-optimization .inside {
+	margin: 0;
+	padding: 0;
+}
+
+#optipress-meta-box-content {
+	padding: 12px;
+}
+
+/* Status Display */
+.optipress-status-display {
+	margin: 0;
+}
+
+.optipress-status-label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 12px 0;
+	font-size: 14px;
+}
+
+.optipress-status-label .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+}
+
+.optipress-status-value {
+	font-weight: 600;
+}
+
+/* Stats Section */
+.optipress-stats {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 12px;
+	margin: 12px 0;
+}
+
+.optipress-stats p {
+	margin: 6px 0;
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.optipress-stats p:first-child {
+	margin-top: 0;
+}
+
+.optipress-stats p:last-child {
+	margin-bottom: 0;
+}
+
+.optipress-stats strong {
+	display: inline-block;
+	min-width: 80px;
+	color: #1d2327;
+}
+
+.optipress-format-badge {
+	display: inline-block;
+	background: #2271b1;
+	color: #fff;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.optipress-savings {
+	border-top: 1px solid #dcdcde;
+	padding-top: 10px !important;
+	margin-top: 10px !important;
+}
+
+.optipress-savings-value {
+	color: #00a32a;
+	font-weight: 600;
+}
+
+/* Format Selector */
+.optipress-format-selector {
+	margin-top: 12px;
+}
+
+.optipress-format-selector > p {
+	margin: 0 0 8px 0;
+	font-size: 13px;
+}
+
+.optipress-format-options {
+	display: flex;
+	gap: 12px;
+	margin: 12px 0 16px 0;
+}
+
+.optipress-format-options label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	padding: 8px 12px;
+	background: #fff;
+	border: 2px solid #dcdcde;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+.optipress-format-options label:hover {
+	border-color: #2271b1;
+	background: #f6f7f7;
+}
+
+.optipress-format-options input[type="radio"] {
+	margin: 0;
+}
+
+.optipress-format-options input[type="radio"]:checked + span {
+	font-weight: 600;
+	color: #2271b1;
+}
+
+/* Actions */
+.optipress-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.optipress-actions button {
+	width: 100%;
+	text-align: center;
+	justify-content: center;
+}
+
+/* Loading State */
+.optipress-loading {
+	text-align: center;
+	padding: 20px 0;
+}
+
+.optipress-loading .spinner {
+	float: none;
+	margin: 0 auto 12px;
+	display: block;
+}
+
+.optipress-loading-text {
+	margin: 0;
+	color: #646970;
+	font-size: 13px;
+}
+
+/* Description text */
+#optipress-meta-box-content .description {
+	margin: 8px 0;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+/* Responsive adjustments for meta box */
+@media screen and (max-width: 782px) {
+	.optipress-format-options {
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.optipress-format-options label {
+		width: 100%;
+	}
+}

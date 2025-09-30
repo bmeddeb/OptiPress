@@ -1,6 +1,6 @@
 {
   "name": "optipress",
-  "version": "0.4.2",
+  "version": "0.4.4",
   "description": "WordPress image optimization and safe SVG handling plugin",
   "author": "Ben Meddeb <https://meddeb.me>",
   "license": "MIT",

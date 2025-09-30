@@ -116,6 +116,10 @@ class Image_Converter {
 			return $metadata;
 		}
 
+		// Mark as processing immediately (before conversion starts)
+		// This allows JavaScript to detect conversion is happening
+		update_post_meta( $attachment_id, '_optipress_converting', true );
+
 		// Get target format from settings
 		$format = $this->get_target_format();
 
@@ -199,6 +203,9 @@ class Image_Converter {
 			$bytes_saved = $original_total_size - $converted_total_size;
 			$percent_saved = $original_total_size > 0 ? ( $bytes_saved / $original_total_size ) * 100 : 0;
 
+			// Remove processing flag
+			delete_post_meta( $attachment_id, '_optipress_converting' );
+
 			update_post_meta( $attachment_id, '_optipress_converted', true );
 			update_post_meta( $attachment_id, '_optipress_format', $format );
 			update_post_meta( $attachment_id, '_optipress_engine', $engine->get_name() );
@@ -218,6 +225,7 @@ class Image_Converter {
 			}
 		} else {
 			// Conversion failed for all images
+			delete_post_meta( $attachment_id, '_optipress_converting' );
 			update_post_meta( $attachment_id, '_optipress_converted', false );
 		}
 
@@ -822,6 +830,211 @@ class Image_Converter {
 	}
 
 	/**
+	 * Convert a single attachment to specified format
+	 *
+	 * @param int    $attachment_id Attachment ID.
+	 * @param string $format        Target format (webp or avif).
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	public function convert_single_attachment( $attachment_id, $format ) {
+		// Validate attachment
+		if ( ! wp_attachment_is_image( $attachment_id ) ) {
+			return new \WP_Error( 'invalid_attachment', __( 'Attachment is not an image.', 'optipress' ) );
+		}
+
+		// Get file path
+		$file_path = get_attached_file( $attachment_id );
+		if ( ! $file_path || ! file_exists( $file_path ) ) {
+			return new \WP_Error( 'file_not_found', __( 'Image file not found.', 'optipress' ) );
+		}
+
+		// Check if file type should be converted
+		if ( ! $this->should_convert_file( $file_path ) ) {
+			return new \WP_Error( 'unsupported_type', __( 'Image type not supported for conversion.', 'optipress' ) );
+		}
+
+		// Validate format
+		if ( ! in_array( $format, array( 'webp', 'avif' ), true ) ) {
+			return new \WP_Error( 'invalid_format', __( 'Invalid target format.', 'optipress' ) );
+		}
+
+		// Get appropriate engine
+		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+		$engine   = $registry->get_engine_from_settings( $format );
+
+		if ( null === $engine ) {
+			return new \WP_Error(
+				'no_engine',
+				sprintf(
+					/* translators: %s: Format name */
+					__( 'No available engine supports %s format.', 'optipress' ),
+					strtoupper( $format )
+				)
+			);
+		}
+
+		// Check if format is supported
+		if ( ! $engine->supports_format( $format ) ) {
+			return new \WP_Error(
+				'format_not_supported',
+				sprintf(
+					/* translators: %s: Format name */
+					__( '%s format is not supported on this server.', 'optipress' ),
+					strtoupper( $format )
+				)
+			);
+		}
+
+		// Calculate original file sizes
+		$original_size = filesize( $file_path );
+		$original_total_size = $original_size;
+
+		// Get metadata for image sizes
+		$metadata = wp_get_attachment_metadata( $attachment_id );
+
+		// Convert the full-size image
+		$converted_full = $this->convert_image( $file_path, $format, $engine, $attachment_id );
+
+		if ( ! $converted_full ) {
+			return new \WP_Error( 'conversion_failed', __( 'Image conversion failed.', 'optipress' ) );
+		}
+
+		// Convert all image sizes
+		$converted_sizes = array();
+		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ) {
+			$upload_dir = dirname( $file_path );
+
+			foreach ( $metadata['sizes'] as $size_name => $size_data ) {
+				if ( ! isset( $size_data['file'] ) ) {
+					continue;
+				}
+
+				$size_path = trailingslashit( $upload_dir ) . $size_data['file'];
+
+				if ( file_exists( $size_path ) ) {
+					$original_total_size += filesize( $size_path );
+
+					$converted = $this->convert_image( $size_path, $format, $engine, $attachment_id );
+					if ( $converted ) {
+						$converted_sizes[] = $size_name;
+					}
+				}
+			}
+		}
+
+		// Calculate converted total size
+		$converted_total_size = 0;
+		$path_info = pathinfo( $file_path );
+		$converted_path = trailingslashit( $path_info['dirname'] ) . $path_info['filename'] . '.' . $format;
+
+		if ( file_exists( $converted_path ) ) {
+			$converted_total_size += filesize( $converted_path );
+		}
+
+		// Add size of all converted image sizes
+		if ( ! empty( $converted_sizes ) && isset( $metadata['sizes'] ) ) {
+			$upload_dir = dirname( $file_path );
+
+			foreach ( $metadata['sizes'] as $size_name => $size_data ) {
+				if ( ! isset( $size_data['file'] ) || ! in_array( $size_name, $converted_sizes, true ) ) {
+					continue;
+				}
+
+				$size_path_info = pathinfo( $size_data['file'] );
+				$converted_size_path = trailingslashit( $upload_dir ) . $size_path_info['filename'] . '.' . $format;
+
+				if ( file_exists( $converted_size_path ) ) {
+					$converted_total_size += filesize( $converted_size_path );
+				}
+			}
+		}
+
+		// Calculate savings
+		$bytes_saved = $original_total_size - $converted_total_size;
+		$percent_saved = $original_total_size > 0 ? ( $bytes_saved / $original_total_size ) * 100 : 0;
+
+		// Store conversion metadata
+		update_post_meta( $attachment_id, '_optipress_converted', true );
+		update_post_meta( $attachment_id, '_optipress_format', $format );
+		update_post_meta( $attachment_id, '_optipress_engine', $engine->get_name() );
+		update_post_meta( $attachment_id, '_optipress_converted_sizes', $converted_sizes );
+		update_post_meta( $attachment_id, '_optipress_conversion_date', current_time( 'mysql' ) );
+		update_post_meta( $attachment_id, '_optipress_original_size', $original_total_size );
+		update_post_meta( $attachment_id, '_optipress_converted_size', $converted_total_size );
+		update_post_meta( $attachment_id, '_optipress_bytes_saved', $bytes_saved );
+		update_post_meta( $attachment_id, '_optipress_percent_saved', round( $percent_saved, 2 ) );
+
+		return true;
+	}
+
+	/**
+	 * Revert a single attachment to original
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	public function revert_single_attachment( $attachment_id ) {
+		// Check if attachment is converted
+		if ( ! $this->is_converted( $attachment_id ) ) {
+			return new \WP_Error( 'not_converted', __( 'Image is not converted.', 'optipress' ) );
+		}
+
+		// Get file path
+		$file_path = get_attached_file( $attachment_id );
+		if ( ! $file_path || ! file_exists( $file_path ) ) {
+			return new \WP_Error( 'file_not_found', __( 'Image file not found.', 'optipress' ) );
+		}
+
+		// Get format
+		$format = get_post_meta( $attachment_id, '_optipress_format', true );
+		if ( empty( $format ) ) {
+			return new \WP_Error( 'no_format', __( 'Conversion format not found.', 'optipress' ) );
+		}
+
+		// Get metadata for image sizes
+		$metadata = wp_get_attachment_metadata( $attachment_id );
+
+		// Delete converted full-size image
+		$path_info = pathinfo( $file_path );
+		$converted_path = trailingslashit( $path_info['dirname'] ) . $path_info['filename'] . '.' . $format;
+
+		if ( file_exists( $converted_path ) ) {
+			@unlink( $converted_path );
+		}
+
+		// Delete all converted image sizes
+		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ) {
+			$upload_dir = dirname( $file_path );
+
+			foreach ( $metadata['sizes'] as $size_data ) {
+				if ( ! isset( $size_data['file'] ) ) {
+					continue;
+				}
+
+				$size_path_info = pathinfo( $size_data['file'] );
+				$converted_size_path = trailingslashit( $upload_dir ) . $size_path_info['filename'] . '.' . $format;
+
+				if ( file_exists( $converted_size_path ) ) {
+					@unlink( $converted_size_path );
+				}
+			}
+		}
+
+		// Remove all conversion metadata
+		delete_post_meta( $attachment_id, '_optipress_converted' );
+		delete_post_meta( $attachment_id, '_optipress_format' );
+		delete_post_meta( $attachment_id, '_optipress_engine' );
+		delete_post_meta( $attachment_id, '_optipress_converted_sizes' );
+		delete_post_meta( $attachment_id, '_optipress_conversion_date' );
+		delete_post_meta( $attachment_id, '_optipress_original_size' );
+		delete_post_meta( $attachment_id, '_optipress_converted_size' );
+		delete_post_meta( $attachment_id, '_optipress_bytes_saved' );
+		delete_post_meta( $attachment_id, '_optipress_percent_saved' );
+
+		return true;
+	}
+
+	/**
 	 * AJAX handler to check conversion status
 	 */
 	public function ajax_check_conversion_status() {
@@ -833,6 +1046,17 @@ class Image_Converter {
 
 		if ( ! $attachment_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid attachment ID.', 'optipress' ) ) );
+		}
+
+		// Check if currently converting
+		$is_converting = get_post_meta( $attachment_id, '_optipress_converting', true );
+
+		if ( $is_converting ) {
+			// Conversion in progress
+			wp_send_json_success( array(
+				'status'  => 'processing',
+				'message' => __( 'Converting image...', 'optipress' ),
+			) );
 		}
 
 		// Check if conversion is complete
@@ -858,10 +1082,10 @@ class Image_Converter {
 				),
 			) );
 		} else {
-			// Still processing
+			// Not converted (probably not a convertible image type)
 			wp_send_json_success( array(
-				'status'  => 'processing',
-				'message' => __( 'Converting image...', 'optipress' ),
+				'status'  => 'not_applicable',
+				'message' => __( 'Image not converted', 'optipress' ),
 			) );
 		}
 	}

@@ -3,7 +3,7 @@
  * Plugin Name: OptiPress
  * Plugin URI: https://optipress.meddeb.me
  * Description: Image optimization and safe SVG handling for WordPress. Converts images to WebP/AVIF and enables secure SVG uploads.
- * Version:     0.4.2
+ * Version:     0.4.4
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Ben Meddeb
@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'OPTIPRESS_VERSION', '0.4.2' );
+define( 'OPTIPRESS_VERSION', '0.4.4' );
 define( 'OPTIPRESS_PLUGIN_FILE', __FILE__ );
 define( 'OPTIPRESS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPTIPRESS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -95,6 +95,9 @@ function optipress_load_files() {
 
 	// Admin interface
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-admin-interface.php';
+
+	// Attachment meta box
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-attachment-meta-box.php';
 }
 
 /**
@@ -129,6 +132,7 @@ function optipress_init() {
 	// Initialize Admin Interface
 	if ( is_admin() ) {
 		\OptiPress\Admin_Interface::get_instance();
+		\OptiPress\Attachment_Meta_Box::get_instance();
 	}
 }
 add_action( 'plugins_loaded', 'optipress_init' );
