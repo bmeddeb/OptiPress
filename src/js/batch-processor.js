@@ -13,12 +13,15 @@
 	 * Batch Processor Object
 	 */
 	var OptipressBatchProcessor = {
+		// Timer for debouncing stats refresh
+		statsRefreshTimer: null,
+
 		/**
 		 * Initialize
 		 */
 		init: function () {
 			this.bindEvents();
-			this.loadStats();
+			this.debouncedLoadStats();
 		},
 
 		/**
@@ -54,6 +57,23 @@
 					}
 				},
 			});
+		},
+
+		/**
+		 * Load stats with debouncing to prevent excessive AJAX calls
+		 */
+		debouncedLoadStats: function () {
+			var self = this;
+
+			// Clear existing timer
+			if (this.statsRefreshTimer) {
+				clearTimeout(this.statsRefreshTimer);
+			}
+
+			// Set new timer to load stats after 750ms of inactivity
+			this.statsRefreshTimer = setTimeout(function () {
+				self.loadStats();
+			}, 750);
 		},
 
 		/**
@@ -284,37 +304,37 @@
 							? Math.ceil(totalTime / 60) + ' minutes'
 							: totalTime + ' seconds';
 
-                $statusText
-                    .text(
-                        optipressAdmin.i18n.complete +
-                            ' ' +
-                            options.processed +
-                            ' / ' +
-                            options.total +
-                            ' (took ' +
-                            timeStr +
-                            ')'
-                    )
-                    .removeClass('optipress-error')
-                    .addClass('optipress-success');
-                $button.prop('disabled', false);
+					$statusText
+						.text(
+							optipressAdmin.i18n.complete +
+								' ' +
+								options.processed +
+								' / ' +
+								options.total +
+								' (took ' +
+								timeStr +
+								')'
+						)
+						.removeClass('optipress-error')
+						.addClass('optipress-success');
+					$button.prop('disabled', false);
 
-                if (options.successCallback) {
-                    options.successCallback(options.processed, $resultArea);
-                }
+					if (options.successCallback) {
+						options.successCallback(options.processed, $resultArea);
+					}
 
-                // Auto-dismiss status text and progress bar after 4 seconds
-                setTimeout(function () {
-                    $statusText.fadeOut(200, function () {
-                        $(this).text('').hide().removeClass('optipress-success');
-                    });
-                    $progressBar.find('.optipress-progress-fill').css('width', '0%');
-                    $progressBar.fadeOut(200);
-                }, 4000);
+					// Auto-dismiss status text and progress bar after 4 seconds
+					setTimeout(function () {
+						$statusText.fadeOut(200, function () {
+							$(this).text('').hide().removeClass('optipress-success');
+						});
+						$progressBar.find('.optipress-progress-fill').css('width', '0%');
+						$progressBar.fadeOut(200);
+					}, 4000);
 
 					// Reload stats after a short delay to ensure DB updates are complete
 					setTimeout(function () {
-						self.loadStats();
+						self.debouncedLoadStats();
 					}, 500);
 				} else {
 					// Continue processing next batch
@@ -366,13 +386,13 @@
 				)
 				.show();
 
-            // Auto-hide after 4 seconds
-            setTimeout(function () {
-                var $notice = $container.find('.optipress-local-notice');
-                $notice.fadeOut(200, function () {
-                    $(this).remove();
-                });
-            }, 4000);
+			// Auto-hide after 4 seconds
+			setTimeout(function () {
+				var $notice = $container.find('.optipress-local-notice');
+				$notice.fadeOut(200, function () {
+					$(this).remove();
+				});
+			}, 4000);
 		},
 
 		/**

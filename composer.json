@@ -1,21 +1,33 @@
 {
-  "name": "bmeddeb/optipress",
-  "description": "WordPress image optimization and safe SVG handling plugin",
-  "type": "wordpress-plugin",
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Ben Meddeb",
-      "homepage": "https://meddeb.me"
-    }
-  ],
-  "require": {
-    "php": ">=7.4",
-    "enshrined/svg-sanitize": "^0.15"
-  },
-  "autoload": {
-    "psr-4": {
-      "OptiPress\\": "includes/"
-    }
-  }
+	"name": "bmeddeb/optipress",
+	"description": "WordPress image optimization and safe SVG handling plugin",
+	"type": "wordpress-plugin",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Ben Meddeb",
+			"email": "bmeddeb@asu.edu",
+			"homepage": "https://meddeb.me"
+		}
+	],
+	"require": {
+		"php": ">=7.4",
+		"enshrined/svg-sanitize": "^0.15"
+	},
+	"require-dev": {
+		"wp-coding-standards/wpcs": "^3.0",
+		"phpcompatibility/php-compatibility": "^9.3",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+	},
+	"scripts": {
+		"phpcs": "phpcs",
+		"phpcbf": "phpcbf",
+		"lint": "phpcs --standard=phpcs.xml",
+		"lint:fix": "phpcbf --standard=phpcs.xml"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	}
 }

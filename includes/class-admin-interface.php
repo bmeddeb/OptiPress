@@ -188,7 +188,7 @@ class Admin_Interface {
 			// JavaScript
 			wp_enqueue_script(
 				'optipress-admin',
-				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-settings.js',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-settings.bundle.js',
 				array( 'jquery', 'optipress-admin-notices' ),
 				OPTIPRESS_VERSION,
 				true
@@ -197,7 +197,7 @@ class Admin_Interface {
 			// Admin notices helper (provides OptipressNotices)
 			wp_enqueue_script(
 				'optipress-admin-notices',
-				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-notices.js',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-notices.bundle.js',
 				array( 'jquery', 'wp-data' ),
 				OPTIPRESS_VERSION,
 				true
@@ -206,7 +206,7 @@ class Admin_Interface {
 			// Batch processor script
 			wp_enqueue_script(
 				'optipress-batch-processor',
-				OPTIPRESS_PLUGIN_URL . 'admin/js/batch-processor.js',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/batch-processor.bundle.js',
 				array( 'jquery', 'optipress-admin', 'optipress-admin-notices', 'wp-data' ),
 				OPTIPRESS_VERSION,
 				true
@@ -249,7 +249,7 @@ class Admin_Interface {
 
 			wp_enqueue_script(
 				'optipress-upload-progress',
-				OPTIPRESS_PLUGIN_URL . 'admin/js/upload-progress.js',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/upload-progress.bundle.js',
 				array( 'jquery', 'media-views', 'media-upload', 'wp-util' ),
 				OPTIPRESS_VERSION,
 				true

@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<ruleset name="OptiPress">
+	<description>OptiPress WordPress Coding Standards</description>
+
+	<!-- What to scan -->
+	<file>.</file>
+
+	<!-- Exclude patterns -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/dist/*</exclude-pattern>
+	<exclude-pattern>*/admin/js/*.bundle.js</exclude-pattern>
+	<exclude-pattern>*/admin/js/*.min.js</exclude-pattern>
+	<exclude-pattern>*/.git/*</exclude-pattern>
+
+	<!-- How to scan -->
+	<arg value="sp"/> <!-- Show sniff and progress -->
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Rules: WordPress Coding Standards -->
+	<config name="minimum_supported_wp_version" value="6.7"/>
+
+	<rule ref="WordPress">
+		<!-- Allow short array syntax -->
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+
+		<!-- Allow tab indentation -->
+		<exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+
+		<!-- Allow file/class name mismatch for legacy code -->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+	</rule>
+
+	<!-- Enforce WordPress naming conventions -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="optipress"/>
+				<element value="OptiPress"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Check for PHP cross-version compatibility -->
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibility">
+		<!-- Exclude PHP 8.0+ features we're not using -->
+		<exclude name="PHPCompatibility.FunctionUse.NewFunctions"/>
+	</rule>
+</ruleset>

@@ -10,17 +10,25 @@
     "url": "https://github.com/bmeddeb/OptiPress.git"
   },
   "scripts": {
-    "build": "npm run build:svg-preview && npm run build:admin",
+    "build": "npm run build:svg-preview && npm run build:admin && npm run build:notices && npm run build:batch && npm run build:upload && npm run build:attachment",
     "build:svg-preview": "esbuild src/js/svg-preview.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/svg-preview.bundle.js",
-    "build:admin": "esbuild src/js/admin-settings.js --bundle --sourcemap --target=es2017 --outfile=admin/js/admin-settings.js",
-    "watch": "npm run watch:svg-preview & npm run watch:admin",
+    "build:admin": "esbuild src/js/admin-settings.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/admin-settings.bundle.js",
+    "build:notices": "esbuild src/js/admin-notices.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/admin-notices.bundle.js",
+    "build:batch": "esbuild src/js/batch-processor.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/batch-processor.bundle.js",
+    "build:upload": "esbuild src/js/upload-progress.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/upload-progress.bundle.js",
+    "build:attachment": "esbuild src/js/attachment-edit.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/attachment-edit.bundle.js",
+    "watch": "npm run watch:svg-preview & npm run watch:admin & npm run watch:notices & npm run watch:batch & npm run watch:upload & npm run watch:attachment",
     "watch:svg-preview": "esbuild src/js/svg-preview.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/svg-preview.bundle.js",
-    "watch:admin": "esbuild src/js/admin-settings.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/admin-settings.js",
+    "watch:admin": "esbuild src/js/admin-settings.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/admin-settings.bundle.js",
+    "watch:notices": "esbuild src/js/admin-notices.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/admin-notices.bundle.js",
+    "watch:batch": "esbuild src/js/batch-processor.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/batch-processor.bundle.js",
+    "watch:upload": "esbuild src/js/upload-progress.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/upload-progress.bundle.js",
+    "watch:attachment": "esbuild src/js/attachment-edit.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/attachment-edit.bundle.js",
     "dev": "npm run watch",
-    "lint": "eslint src/js admin/js --ext .js",
-    "lint:fix": "eslint src/js admin/js --ext .js --fix",
-    "format": "prettier --write \"src/**/*.js\" \"admin/js/*.js\" \"!admin/js/*.bundle.js\"",
-    "format:check": "prettier --check \"src/**/*.js\" \"admin/js/*.js\" \"!admin/js/*.bundle.js\""
+    "lint": "eslint src/js --ext .js",
+    "lint:fix": "eslint src/js --ext .js --fix",
+    "format": "prettier --write \"src/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\""
   },
   "devDependencies": {
     "@wordpress/eslint-plugin": "^17.0.0",

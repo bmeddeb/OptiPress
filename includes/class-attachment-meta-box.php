@@ -293,7 +293,7 @@ class Attachment_Meta_Box {
 
 		wp_enqueue_script(
 			'optipress-attachment-edit',
-			OPTIPRESS_PLUGIN_URL . 'admin/js/attachment-edit.js',
+			OPTIPRESS_PLUGIN_URL . 'admin/js/attachment-edit.bundle.js',
 			array( 'jquery' ),
 			OPTIPRESS_VERSION,
 			true
