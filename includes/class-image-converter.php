@@ -75,6 +75,9 @@ class Image_Converter {
 		// Add custom columns to media library
 		add_filter( 'manage_media_columns', array( $this, 'add_media_columns' ) );
 		add_action( 'manage_media_custom_column', array( $this, 'display_media_column' ), 10, 2 );
+
+		// Hook to clean up converted files when attachment is deleted
+		add_action( 'delete_attachment', array( $this, 'delete_converted_files' ), 10, 1 );
 	}
 
 	/**
@@ -707,6 +710,71 @@ class Image_Converter {
 				'<span style="color: #999;">%s</span>',
 				esc_html__( 'Same size', 'optipress' )
 			);
+		}
+	}
+
+	/**
+	 * Delete converted files when attachment is deleted
+	 *
+	 * Cleans up WebP/AVIF files that were generated for this attachment.
+	 * Called by WordPress delete_attachment action.
+	 *
+	 * @param int $attachment_id Attachment post ID.
+	 */
+	public function delete_converted_files( $attachment_id ) {
+		// Get attachment metadata
+		$metadata = wp_get_attachment_metadata( $attachment_id );
+
+		if ( ! $metadata ) {
+			return;
+		}
+
+		// Get the file path
+		$file_path = get_attached_file( $attachment_id );
+
+		if ( ! $file_path ) {
+			return;
+		}
+
+		// Check if this is a supported image type
+		$mime_type = get_post_mime_type( $attachment_id );
+		if ( ! in_array( $mime_type, array( 'image/jpeg', 'image/png' ), true ) ) {
+			return;
+		}
+
+		// Delete both WebP and AVIF versions (user might have changed format over time)
+		$formats = array( 'webp', 'avif' );
+
+		// Delete main file converted versions
+		foreach ( $formats as $format ) {
+			$pathinfo = pathinfo( $file_path );
+			$converted_file = $pathinfo['dirname'] . '/' . $pathinfo['filename'] . '.' . $format;
+
+			if ( file_exists( $converted_file ) ) {
+				wp_delete_file( $converted_file );
+			}
+		}
+
+		// Delete converted versions of all image sizes
+		if ( ! empty( $metadata['sizes'] ) ) {
+			$upload_dir = wp_get_upload_dir();
+			$base_dir = trailingslashit( dirname( $file_path ) );
+
+			foreach ( $metadata['sizes'] as $size => $size_data ) {
+				if ( empty( $size_data['file'] ) ) {
+					continue;
+				}
+
+				// Delete converted versions for each size
+				foreach ( $formats as $format ) {
+					$size_pathinfo = pathinfo( $size_data['file'] );
+					$converted_size_file = $base_dir . $size_pathinfo['filename'] . '.' . $format;
+
+					if ( file_exists( $converted_size_file ) ) {
+						wp_delete_file( $converted_size_file );
+					}
+				}
+			}
 		}
 	}
 }
