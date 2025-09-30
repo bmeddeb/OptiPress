@@ -49,8 +49,9 @@
 			return;
 		}
 
-		// Add savings counter
+		// Add savings counter and status panel
 		addSavingsCounter();
+		ensureUploadPanel();
 
 		// Extend the wp.Uploader to show conversion status
 		var originalSuccess = wp.Uploader.prototype.success;
@@ -181,76 +182,9 @@
 	/**
 	 * Show conversion status message
 	 */
-	function showConversionStatus(attachmentId, status, data, retry) {
-		retry = retry || 0;
-		// Find attachment in grid view
-		var $attachment = $('.attachment[data-id="' + attachmentId + '"]');
-
-		// Also check media modal
-		if (!$attachment.length) {
-			$attachment = $('.attachment-preview[data-attachment-id="' + attachmentId + '"]').closest('.attachment');
-		}
-
-		if (!$attachment.length) {
-			if (retry < 5) {
-				return setTimeout(function(){ showConversionStatus(attachmentId, status, data, retry + 1); }, 150);
-			}
-			return;
-		}
-
-		// Remove existing status
-		$attachment.find('.optipress-status').remove();
-
-		var $status;
-
-		switch (status) {
-			case 'processing':
-				$status = $('<div class="optipress-status optipress-processing">' +
-					'<span class="spinner is-active"></span>' +
-					'<span class="optipress-status-text">' + (data && data.message ? data.message : 'Converting image...') + '</span>' +
-				'</div>');
-				break;
-
-			case 'completed':
-				var message = data && data.message ? data.message : 'Conversion complete';
-				var percentSaved = data && data.percent_saved ? Math.abs(data.percent_saved).toFixed(1) : 0;
-
-				$status = $('<div class="optipress-status optipress-completed">' +
-					'<span class="dashicons dashicons-yes-alt"></span>' +
-					'<span class="optipress-status-text">' + message + '</span>' +
-				'</div>');
-
-				// Fade out after 8 seconds
-				setTimeout(function() {
-					$status.fadeOut(500, function() {
-						$(this).remove();
-					});
-				}, 8000);
-				break;
-
-			case 'timeout':
-				$status = $('<div class="optipress-status optipress-timeout">' +
-					'<span class="dashicons dashicons-warning"></span>' +
-					'<span class="optipress-status-text">Conversion taking longer than expected...</span>' +
-				'</div>');
-
-				// Fade out after 5 seconds
-				setTimeout(function() {
-					$status.fadeOut(500, function() {
-						$(this).remove();
-					});
-				}, 5000);
-				break;
-		}
-
-		if ($status) {
-			// Try to append to different locations depending on view
-			var $target = $attachment.find('.attachment-preview');
-			if (!$target.length) {
-				$target = $attachment;
-			}
-			$target.append($status);
-		}
+	function showConversionStatus(attachmentId, status, data) {
+		ensureUploadPanel();
+		updateUploadPanelItem(attachmentId, status, data);
 	}
 
 	/**
@@ -285,6 +219,78 @@
 		'</div>');
 
 		$('body').append($counter);
+	}
+
+	/**
+	 * Upload status panel
+	 */
+	function ensureUploadPanel(){
+		if ($('#optipress-upload-panel').length) return;
+		var $panel = $('<div id="optipress-upload-panel" class="hidden">' +
+			'<div class="optipress-upload-header">' +
+				'<span>OptiPress Uploads</span>' +
+				'<button type="button" class="optipress-upload-remove" title="Hide" aria-label="Hide">×</button>' +
+			'</div>' +
+			'<ul class="optipress-upload-list" id="optipress-upload-list"></ul>' +
+		'</div>');
+		$panel.on('click', '.optipress-upload-remove', function(){ $('#optipress-upload-panel').toggleClass('hidden'); });
+		$('body').append($panel);
+	}
+
+	function updateUploadPanelVisibility(){
+		var $list = $('#optipress-upload-list');
+		var hasItems = $list.children().length > 0;
+		$('#optipress-upload-panel').toggleClass('hidden', !hasItems);
+	}
+
+	function updateUploadPanelItem(attachmentId, status, data){
+		var $list = $('#optipress-upload-list');
+		var id = String(attachmentId);
+		var $item = $list.find('[data-id="' + id + '"]');
+		var filename = (data && data.filename) || (processingAttachments[id] && processingAttachments[id].filename) || ('#' + id);
+		var message;
+		switch(status){
+			case 'processing':
+				message = (data && data.message) || 'Converting image...';
+				break;
+			case 'completed':
+				message = (data && data.message) || 'Conversion complete';
+				break;
+			case 'timeout':
+				message = 'Conversion taking longer than expected...';
+				break;
+		}
+
+		if (!$item.length){
+			$item = $('<li class="optipress-upload-item processing" data-id="' + id + '">' +
+				'<span class="status-icon"><span class="spinner is-active"></span></span>' +
+				'<div class="optipress-upload-filename" title="' + filename + '">' + filename + '</div>' +
+				'<div class="optipress-upload-message">' + message + '</div>' +
+			'</li>');
+			$list.prepend($item);
+		} else {
+			$item.find('.optipress-upload-message').text(message);
+		}
+
+		$item.removeClass('processing completed timeout');
+		switch(status){
+			case 'processing':
+				$item.addClass('processing');
+				$item.find('.status-icon').html('<span class="spinner is-active"></span>');
+				break;
+			case 'completed':
+				$item.addClass('completed');
+				$item.find('.status-icon').html('<span class="dashicons dashicons-yes-alt"></span>');
+				setTimeout(function(){ $item.fadeOut(300, function(){ $(this).remove(); updateUploadPanelVisibility(); }); }, 8000);
+				break;
+			case 'timeout':
+				$item.addClass('timeout');
+				$item.find('.status-icon').html('<span class="dashicons dashicons-warning"></span>');
+				setTimeout(function(){ $item.fadeOut(300, function(){ $(this).remove(); updateUploadPanelVisibility(); }); }, 5000);
+				break;
+		}
+
+		updateUploadPanelVisibility();
 	}
 
 	/**
