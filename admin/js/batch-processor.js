@@ -95,14 +95,12 @@
 		startBatchConversion: function(e) {
 			e.preventDefault();
 
-			if (!confirm(optipressAdmin.i18n.confirmBatch)) {
-				return;
-			}
+			// Ask for confirmation using non-blocking confirmation helper when available
+			var proceedWithBatch = function() {
+				var remaining = parseInt($('#optipress-remaining-images').text());
+				var total = remaining;
 
-			var remaining = parseInt($('#optipress-remaining-images').text());
-			var total = remaining;
-
-			this.processBatch({
+				this.processBatch({
 				action: 'optipress_process_batch',
 				total: total,
 				processed: 0,
@@ -113,6 +111,20 @@
 				successCallback: this.onBatchComplete.bind(this),
 				progressText: optipressAdmin.i18n.processing
 			});
+			}.bind(this);
+
+			if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
+				OptipressNotices.createConfirm(optipressAdmin.i18n.confirmBatch)
+					.then(function(confirmed){
+						if ( confirmed ) {
+							proceedWithBatch();
+						}
+					});
+			} else {
+				if ( confirm(optipressAdmin.i18n.confirmBatch) ) {
+					proceedWithBatch();
+				}
+			}
 		},
 
 		/**
@@ -121,14 +133,11 @@
 		startRevert: function(e) {
 			e.preventDefault();
 
-			if (!confirm(optipressAdmin.i18n.confirmRevert)) {
-				return;
-			}
+			var proceedWithRevert = function() {
+				var converted = parseInt($('#optipress-converted-images').text());
+				var total = converted;
 
-			var converted = parseInt($('#optipress-converted-images').text());
-			var total = converted;
-
-			this.processBatch({
+				this.processBatch({
 				action: 'optipress_revert_images',
 				total: total,
 				processed: 0,
@@ -139,6 +148,20 @@
 				successCallback: this.onRevertComplete.bind(this),
 				progressText: optipressAdmin.i18n.reverting
 			});
+			}.bind(this);
+
+			if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
+				OptipressNotices.createConfirm(optipressAdmin.i18n.confirmRevert)
+					.then(function(confirmed){
+						if ( confirmed ) {
+							proceedWithRevert();
+						}
+					});
+			} else {
+				if ( confirm(optipressAdmin.i18n.confirmRevert) ) {
+					proceedWithRevert();
+				}
+			}
 		},
 
 		/**
@@ -147,13 +170,10 @@
 		startSvgSanitization: function(e) {
 			e.preventDefault();
 
-			if (!confirm(optipressAdmin.i18n.confirmSvgBatch)) {
-				return;
-			}
+			var proceedWithSvg = function() {
+				var total = parseInt($('#optipress-total-svgs').text());
 
-			var total = parseInt($('#optipress-total-svgs').text());
-
-			this.processBatch({
+				this.processBatch({
 				action: 'optipress_sanitize_svg_batch',
 				total: total,
 				processed: 0,
@@ -164,6 +184,20 @@
 				successCallback: this.onSvgBatchComplete.bind(this),
 				progressText: optipressAdmin.i18n.sanitizing
 			});
+			}.bind(this);
+
+			if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
+				OptipressNotices.createConfirm(optipressAdmin.i18n.confirmSvgBatch)
+					.then(function(confirmed){
+						if ( confirmed ) {
+							proceedWithSvg();
+						}
+					});
+			} else {
+				if ( confirm(optipressAdmin.i18n.confirmSvgBatch) ) {
+					proceedWithSvg();
+				}
+			}
 		},
 
 		/**
@@ -248,21 +282,48 @@
 		 * Batch conversion complete callback
 		 */
 		onBatchComplete: function(processed) {
-			alert(optipressAdmin.i18n.batchComplete.replace('%d', processed));
+			var message = optipressAdmin.i18n.batchComplete.replace('%d', processed);
+			if ( typeof wp !== 'undefined' && wp.data && wp.data.dispatch ) {
+				try {
+					wp.data.dispatch('core/notices').createNotice( 'success', message, { isDismissible: true } );
+				} catch (e) {
+					OptipressNotices.createNotice('success', message, { isDismissible: true });
+				}
+			} else {
+				OptipressNotices.createNotice('success', message, { isDismissible: true });
+			}
 		},
 
 		/**
 		 * Revert complete callback
 		 */
 		onRevertComplete: function(processed) {
-			alert(optipressAdmin.i18n.revertComplete.replace('%d', processed));
+			var message = optipressAdmin.i18n.revertComplete.replace('%d', processed);
+			if ( typeof wp !== 'undefined' && wp.data && wp.data.dispatch ) {
+				try {
+					wp.data.dispatch('core/notices').createNotice( 'success', message, { isDismissible: true } );
+				} catch (e) {
+					OptipressNotices.createNotice('success', message, { isDismissible: true });
+				}
+			} else {
+				OptipressNotices.createNotice('success', message, { isDismissible: true });
+			}
 		},
 
 		/**
 		 * SVG batch complete callback
 		 */
 		onSvgBatchComplete: function(processed) {
-			alert(optipressAdmin.i18n.svgBatchComplete.replace('%d', processed));
+			var message = optipressAdmin.i18n.svgBatchComplete.replace('%d', processed);
+			if ( typeof wp !== 'undefined' && wp.data && wp.data.dispatch ) {
+				try {
+					wp.data.dispatch('core/notices').createNotice( 'success', message, { isDismissible: true } );
+				} catch (e) {
+					OptipressNotices.createNotice('success', message, { isDismissible: true });
+				}
+			} else {
+				OptipressNotices.createNotice('success', message, { isDismissible: true });
+			}
 		}
 	};
 

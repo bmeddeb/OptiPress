@@ -105,14 +105,22 @@
 
 		$checkbox.on('change', function() {
 			if (!$(this).is(':checked')) {
-				const confirmed = confirm(
-					'Warning: Disabling "Keep Originals" will permanently delete original image files after conversion.\n\n' +
+				var message = 'Warning: Disabling "Keep Originals" will permanently delete original image files after conversion.\n\n' +
 					'This cannot be undone, and you will not be able to revert conversions.\n\n' +
-					'Are you sure you want to disable this option?'
-				);
+					'Are you sure you want to disable this option?';
 
-				if (!confirmed) {
-					$(this).prop('checked', true);
+				// Use OptipressNotices.createConfirm if available (non-blocking), fallback to window.confirm
+				if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
+					OptipressNotices.createConfirm(message, { confirmLabel: 'Disable', cancelLabel: 'Keep Originals' })
+						.then(function(confirmed) {
+							if (!confirmed) {
+								$("input[name=\"optipress_options[keep_originals]\"]").prop('checked', true);
+							}
+						});
+				} else {
+					if (!window.confirm(message)) {
+						$("input[name=\"optipress_options[keep_originals]\"]").prop('checked', true);
+					}
 				}
 			}
 		});

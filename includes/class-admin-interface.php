@@ -190,11 +190,20 @@ class Admin_Interface {
 				true
 			);
 
+			// Admin notices helper (provides OptipressNotices)
+			wp_enqueue_script(
+				'optipress-admin-notices',
+				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-notices.js',
+				array( 'jquery', 'wp-data' ),
+				OPTIPRESS_VERSION,
+				true
+			);
+
 			// Batch processor script
 			wp_enqueue_script(
 				'optipress-batch-processor',
 				OPTIPRESS_PLUGIN_URL . 'admin/js/batch-processor.js',
-				array( 'jquery', 'optipress-admin' ),
+				array( 'jquery', 'optipress-admin', 'wp-data' ),
 				OPTIPRESS_VERSION,
 				true
 			);
