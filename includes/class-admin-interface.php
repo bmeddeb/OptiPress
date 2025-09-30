@@ -99,15 +99,16 @@ class Admin_Interface {
 
 		// Start with existing values
 		$sanitized = wp_parse_args( $existing, array(
-			'engine'               => 'auto',
-			'format'               => 'webp',
-			'quality'              => 85,
-			'auto_convert'         => true,
-			'keep_originals'       => true,
-			'svg_enabled'          => false,
+			'engine'                => 'auto',
+			'format'                => 'webp',
+			'quality'               => 85,
+			'auto_convert'          => true,
+			'keep_originals'        => true,
+			'svg_enabled'           => false,
+			'svg_preview_enabled'   => false,
 			'enable_content_filter' => true,
-			'use_picture_element'  => false,
-			'delivery_method'      => 'htaccess',
+			'use_picture_element'   => false,
+			'delivery_method'       => 'htaccess',
 		) );
 
 		// Engine (only update if present in input)
@@ -144,6 +145,9 @@ class Admin_Interface {
 		// SVG tab fields
 		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=svg' ) !== false ) ) {
 			$sanitized['svg_enabled'] = isset( $input['svg_enabled'] ) && $input['svg_enabled'];
+		}
+		if ( isset( $input['svg_preview_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=svg' ) !== false ) ) {
+			$sanitized['svg_preview_enabled'] = isset( $input['svg_preview_enabled'] ) && $input['svg_preview_enabled'];
 		}
 
 		// Front-end delivery options (optimization tab)
@@ -259,6 +263,28 @@ class Admin_Interface {
 					'nonce' => wp_create_nonce( 'optipress_upload' ),
 				)
 			);
+
+			// SVG Preview (if enabled)
+			$options = get_option( 'optipress_options', array() );
+			if ( ! empty( $options['svg_enabled'] ) && ! empty( $options['svg_preview_enabled'] ) ) {
+				wp_enqueue_script(
+					'optipress-svg-preview',
+					OPTIPRESS_PLUGIN_URL . 'admin/js/svg-preview.bundle.js',
+					array( 'jquery', 'media-upload' ),
+					OPTIPRESS_VERSION,
+					true
+				);
+
+				// Localize SVG preview script
+				wp_localize_script(
+					'optipress-svg-preview',
+					'optipressSvgPreview',
+					array(
+						'enabled' => true,
+						'nonce'   => wp_create_nonce( 'optipress_svg_preview' ),
+					)
+				);
+			}
 		}
 	}
 

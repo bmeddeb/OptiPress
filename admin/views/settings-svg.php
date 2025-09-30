@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 // Default values
 $svg_enabled = isset( $options['svg_enabled'] ) ? $options['svg_enabled'] : false;
+$svg_preview_enabled = isset( $options['svg_preview_enabled'] ) ? $options['svg_preview_enabled'] : false;
 
 // Get SVG sanitizer
 $svg_sanitizer = \OptiPress\SVG_Sanitizer::get_instance();
@@ -44,6 +45,25 @@ $security_log  = $svg_sanitizer->get_security_log( 10 );
 					</label>
 					<p class="description">
 						<?php esc_html_e( 'When enabled, SVG files can be uploaded to the media library and will be automatically sanitized.', 'optipress' ); ?>
+					</p>
+				</fieldset>
+			</td>
+		</tr>
+
+		<!-- Enable SVG Preview -->
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Client-Side Preview', 'optipress' ); ?>
+			</th>
+			<td>
+				<fieldset>
+					<label>
+						<input type="checkbox" name="optipress_options[svg_preview_enabled]"
+							value="1" <?php checked( $svg_preview_enabled ); ?> />
+						<?php esc_html_e( 'Enable client-side SVG preview with DOMPurify', 'optipress' ); ?>
+					</label>
+					<p class="description">
+						<?php esc_html_e( 'Shows a sanitized preview of SVG files before upload. This is for convenience only - server-side sanitization is always performed and is the authoritative security layer.', 'optipress' ); ?>
 					</p>
 				</fieldset>
 			</td>
@@ -161,6 +181,7 @@ $security_log  = $svg_sanitizer->get_security_log( 10 );
 				<div class="optipress-progress-fill"></div>
 			</div>
 			<div id="optipress-svg-batch-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
+			<div id="optipress-svg-batch-result" class="optipress-result-area" style="display: none; margin-top: 10px;"></div>
 		</div>
 
 		<div class="notice notice-info inline" style="margin-top: 20px;">

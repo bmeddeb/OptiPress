@@ -249,12 +249,14 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 			<div class="optipress-progress-fill"></div>
 		</div>
 		<div id="optipress-batch-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
+		<div id="optipress-batch-result" class="optipress-result-area" style="display: none; margin-top: 10px;"></div>
 
 		<?php if ( $keep_originals ) : ?>
 		<div id="optipress-revert-progress" class="optipress-progress-bar" style="display: none; margin-top: 20px;">
 			<div class="optipress-progress-fill"></div>
 		</div>
 		<div id="optipress-revert-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
+		<div id="optipress-revert-result" class="optipress-result-area" style="display: none; margin-top: 10px;"></div>
 		<?php endif; ?>
 	</div>
 

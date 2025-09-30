@@ -101,16 +101,20 @@
 				var total = remaining;
 
 				this.processBatch({
-				action: 'optipress_process_batch',
-				total: total,
-				processed: 0,
-				offset: 0,
-				progressBar: '#optipress-batch-progress',
-				statusText: '#optipress-batch-status',
-				button: '#optipress-start-batch',
-				successCallback: this.onBatchComplete.bind(this),
-				progressText: optipressAdmin.i18n.processing
-			});
+					action: 'optipress_process_batch',
+					resultKey: 'processed',
+					total: total,
+					processed: 0,
+					offset: 0,
+					progressBar: '#optipress-batch-progress',
+					statusText: '#optipress-batch-status',
+					resultArea: '#optipress-batch-result',
+					button: '#optipress-start-batch',
+					successCallback: this.onBatchComplete.bind(this),
+					progressText: optipressAdmin.i18n.processing,
+					startTime: Date.now(),
+					batchCount: 0
+				});
 			}.bind(this);
 
 			// Use non-blocking confirmation helper (helper is enqueued as a dependency)
@@ -132,16 +136,20 @@
 				var total = converted;
 
 				this.processBatch({
-				action: 'optipress_revert_images',
-				total: total,
-				processed: 0,
-				offset: 0,
-				progressBar: '#optipress-revert-progress',
-				statusText: '#optipress-revert-status',
-				button: '#optipress-revert-batch',
-				successCallback: this.onRevertComplete.bind(this),
-				progressText: optipressAdmin.i18n.reverting
-			});
+					action: 'optipress_revert_images',
+					resultKey: 'reverted',
+					total: total,
+					processed: 0,
+					offset: 0,
+					progressBar: '#optipress-revert-progress',
+					statusText: '#optipress-revert-status',
+					resultArea: '#optipress-revert-result',
+					button: '#optipress-revert-batch',
+					successCallback: this.onRevertComplete.bind(this),
+					progressText: optipressAdmin.i18n.reverting,
+					startTime: Date.now(),
+					batchCount: 0
+				});
 			}.bind(this);
 
 			OptipressNotices.createConfirm(optipressAdmin.i18n.confirmRevert).then(function(confirmed){
@@ -161,16 +169,20 @@
 				var total = parseInt($('#optipress-total-svgs').text());
 
 				this.processBatch({
-				action: 'optipress_sanitize_svg_batch',
-				total: total,
-				processed: 0,
-				offset: 0,
-				progressBar: '#optipress-svg-batch-progress',
-				statusText: '#optipress-svg-batch-status',
-				button: '#optipress-sanitize-svg-batch',
-				successCallback: this.onSvgBatchComplete.bind(this),
-				progressText: optipressAdmin.i18n.sanitizing
-			});
+					action: 'optipress_sanitize_svg_batch',
+					resultKey: 'sanitized',
+					total: total,
+					processed: 0,
+					offset: 0,
+					progressBar: '#optipress-svg-batch-progress',
+					statusText: '#optipress-svg-batch-status',
+					resultArea: '#optipress-svg-batch-result',
+					button: '#optipress-sanitize-svg-batch',
+					successCallback: this.onSvgBatchComplete.bind(this),
+					progressText: optipressAdmin.i18n.sanitizing,
+					startTime: Date.now(),
+					batchCount: 0
+				});
 			}.bind(this);
 
 			OptipressNotices.createConfirm(optipressAdmin.i18n.confirmSvgBatch).then(function(confirmed){
@@ -187,14 +199,21 @@
 			var self = this;
 			var $progressBar = $(options.progressBar);
 			var $statusText = $(options.statusText);
+			var $resultArea = $(options.resultArea);
 			var $button = $(options.button);
 
 			// Disable button
 			$button.prop('disabled', true);
 
-			// Show progress
-			$progressBar.show().find('.optipress-progress-fill').css('width', '0%');
-			$statusText.show().text(options.progressText + ' 0 / ' + options.total);
+			// Hide result area and show progress on first run
+			if (options.processed === 0) {
+				$resultArea.hide();
+				$progressBar.show().find('.optipress-progress-fill').css('width', '0%');
+				$statusText.show().removeClass('optipress-error optipress-success').text(options.progressText + ' 0 / ' + options.total + ' (0%)');
+			}
+
+			// Increment batch counter
+			options.batchCount++;
 
 			// Process chunk
 			this.processChunk(options, function(error, result) {
@@ -204,28 +223,60 @@
 					return;
 				}
 
-				// Update progress
-				var processed = options.processed + result.batch_size;
-				var percentage = Math.min(100, Math.round((processed / options.total) * 100));
+				// Update processed count - use the correct result key based on operation type
+				var newlyProcessed = result[options.resultKey] || 0;
+				options.processed += newlyProcessed;
 
+				// Calculate progress
+				var percentage = Math.min(100, Math.round((options.processed / options.total) * 100));
+
+				// Calculate time estimates (avoid division by zero)
+				var elapsed = (Date.now() - options.startTime) / 1000; // seconds
+				var timeText = '';
+
+				if (options.processed > 0) {
+					var avgTimePerImage = elapsed / options.processed;
+					var remaining = options.total - options.processed;
+					var estimatedTimeLeft = Math.ceil(avgTimePerImage * remaining);
+
+					// Format time remaining
+					if (estimatedTimeLeft > 60) {
+						timeText = ' (~' + Math.ceil(estimatedTimeLeft / 60) + ' min remaining)';
+					} else if (estimatedTimeLeft > 0) {
+						timeText = ' (~' + estimatedTimeLeft + ' sec remaining)';
+					}
+				}
+
+				// Update progress bar
 				$progressBar.find('.optipress-progress-fill').css('width', percentage + '%');
-				$statusText.text(options.progressText + ' ' + processed + ' / ' + options.total);
+
+				// Update status with detailed info
+				var statusMessage = options.progressText + ' ' + options.processed + ' / ' + options.total +
+					' (' + percentage + '%)' + timeText;
+				$statusText.text(statusMessage);
 
 				// Check if complete
-				if (processed >= options.total || result.batch_size === 0) {
-					$statusText.text(optipressAdmin.i18n.complete + ' ' + processed + ' / ' + options.total).removeClass('optipress-error');
+				if (options.processed >= options.total || result.batch_size === 0) {
+					var totalTime = Math.ceil(elapsed);
+					var timeStr = totalTime > 60 ? Math.ceil(totalTime / 60) + ' minutes' : totalTime + ' seconds';
+
+					$statusText
+						.text(optipressAdmin.i18n.complete + ' ' + options.processed + ' / ' + options.total + ' (took ' + timeStr + ')')
+						.removeClass('optipress-error')
+						.addClass('optipress-success');
 					$button.prop('disabled', false);
 
 					if (options.successCallback) {
-						options.successCallback(processed);
+						options.successCallback(options.processed, $resultArea);
 					}
 
-					// Reload stats
-					self.loadStats();
+					// Reload stats after a short delay to ensure DB updates are complete
+					setTimeout(function() {
+						self.loadStats();
+					}, 500);
 				} else {
-					// Continue processing
-					options.processed = processed;
-					options.offset = processed;
+					// Continue processing next batch
+					options.offset += result.batch_size; // Move offset by batch size (IDs fetched)
 					setTimeout(function() {
 						self.processBatch(options);
 					}, 500); // Small delay to prevent server overload
@@ -259,50 +310,71 @@
 		},
 
 		/**
+		 * Show local success message
+		 */
+		showLocalSuccess: function(message, $container) {
+			$container.html(
+				'<div class="optipress-local-notice optipress-local-notice-success">' +
+				'<span class="dashicons dashicons-yes-alt"></span>' +
+				'<span>' + message + '</span>' +
+				'</div>'
+			).show();
+		},
+
+		/**
 		 * Batch conversion complete callback
 		 */
-		onBatchComplete: function(processed) {
+		onBatchComplete: function(processed, $resultArea) {
 			var message = optipressAdmin.i18n.batchComplete.replace('%d', processed);
+
+			// Show local message in result area
+			this.showLocalSuccess(message, $resultArea);
+
+			// Also show at top for visibility (optional - can be removed if not desired)
 			if ( typeof wp !== 'undefined' && wp.data && wp.data.dispatch ) {
 				try {
 					wp.data.dispatch('core/notices').createNotice( 'success', message, { isDismissible: true } );
 				} catch (e) {
-					OptipressNotices.createNotice('success', message, { isDismissible: true });
+					// Fallback handled by local notice
 				}
-			} else {
-				OptipressNotices.createNotice('success', message, { isDismissible: true });
 			}
 		},
 
 		/**
 		 * Revert complete callback
 		 */
-		onRevertComplete: function(processed) {
+		onRevertComplete: function(processed, $resultArea) {
 			var message = optipressAdmin.i18n.revertComplete.replace('%d', processed);
+
+			// Show local message in result area
+			this.showLocalSuccess(message, $resultArea);
+
+			// Also show at top for visibility (optional)
 			if ( typeof wp !== 'undefined' && wp.data && wp.data.dispatch ) {
 				try {
 					wp.data.dispatch('core/notices').createNotice( 'success', message, { isDismissible: true } );
 				} catch (e) {
-					OptipressNotices.createNotice('success', message, { isDismissible: true });
+					// Fallback handled by local notice
 				}
-			} else {
-				OptipressNotices.createNotice('success', message, { isDismissible: true });
 			}
 		},
 
 		/**
 		 * SVG batch complete callback
 		 */
-		onSvgBatchComplete: function(processed) {
+		onSvgBatchComplete: function(processed, $resultArea) {
 			var message = optipressAdmin.i18n.svgBatchComplete.replace('%d', processed);
+
+			// Show local message in result area
+			this.showLocalSuccess(message, $resultArea);
+
+			// Also show at top for visibility (optional)
 			if ( typeof wp !== 'undefined' && wp.data && wp.data.dispatch ) {
 				try {
 					wp.data.dispatch('core/notices').createNotice( 'success', message, { isDismissible: true } );
 				} catch (e) {
-					OptipressNotices.createNotice('success', message, { isDismissible: true });
+					// Fallback handled by local notice
 				}
-			} else {
-				OptipressNotices.createNotice('success', message, { isDismissible: true });
 			}
 		}
 	};
