@@ -4,7 +4,7 @@
  * @package OptiPress
  */
 
-(function($) {
+(function ($) {
 	'use strict';
 
 	// Track attachments being processed
@@ -14,28 +14,35 @@
 	var sessionCount = 0;
 	var DEBUG = !!window.OPTIPRESS_DEBUG;
 
-	function log(){ if (DEBUG && window.console && console.log) { console.log.apply(console, arguments); } }
-
-	function deriveMimeFromFilename(name){
-		if (!name) return '';
-		var m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
-		if (!m) return '';
-		switch(m[1]){
-			case 'jpg':
-			case 'jpeg': return 'image/jpeg';
-			case 'png': return 'image/png';
-			default: return '';
+	function log() {
+		if (DEBUG && window.console && console.log) {
+			console.log.apply(console, arguments);
 		}
 	}
 
-	function getAttachmentMime(att){
+	function deriveMimeFromFilename(name) {
+		if (!name) return '';
+		var m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
+		if (!m) return '';
+		switch (m[1]) {
+			case 'jpg':
+			case 'jpeg':
+				return 'image/jpeg';
+			case 'png':
+				return 'image/png';
+			default:
+				return '';
+		}
+	}
+
+	function getAttachmentMime(att) {
 		if (!att) return '';
 		if (att.mime) return att.mime;
 		if (att.type && att.subtype) return (att.type + '/' + att.subtype).toLowerCase();
 		return deriveMimeFromFilename(att.filename || att.name || '');
 	}
 
-	function isConvertibleMime(mime){
+	function isConvertibleMime(mime) {
 		if (!mime) return false;
 		mime = mime.toLowerCase();
 		return mime === 'image/jpeg' || mime === 'image/png';
@@ -44,7 +51,7 @@
 	/**
 	 * Initialize upload progress tracking
 	 */
-	$(document).ready(function() {
+	$(document).ready(function () {
 		if (typeof wp === 'undefined' || typeof wp.Uploader === 'undefined') {
 			return;
 		}
@@ -55,7 +62,7 @@
 
 		// Extend the wp.Uploader to show conversion status
 		var originalSuccess = wp.Uploader.prototype.success;
-		wp.Uploader.prototype.success = function(attachment) {
+		wp.Uploader.prototype.success = function (attachment) {
 			originalSuccess.apply(this, arguments);
 			if (DEBUG) log('OptiPress uploader success:', attachment);
 			// Track this attachment for status polling
@@ -66,7 +73,7 @@
 
 		// Also hook into Backbone uploader for media modal
 		if (wp.Uploader.queue) {
-			wp.Uploader.queue.on('add', function(attachment) {
+			wp.Uploader.queue.on('add', function (attachment) {
 				if (attachment && attachment.id) {
 					trackAttachment(attachment.id, attachment);
 				}
@@ -88,7 +95,7 @@
 			filename: attachment.filename || attachment.name || 'image',
 			attempts: 0,
 			maxAttempts: 30, // 30 seconds max polling
-			fastPollUntil: Date.now() + 5000 // Fast poll for first 5 seconds
+			fastPollUntil: Date.now() + 5000, // Fast poll for first 5 seconds
 		};
 
 		// Show initial status immediately
@@ -110,7 +117,7 @@
 		// Use faster polling for first few seconds to catch quick conversions
 		var pollCount = 0;
 
-		pollInterval = setInterval(function() {
+		pollInterval = setInterval(function () {
 			pollCount++;
 			checkConversionStatuses();
 
@@ -144,7 +151,7 @@
 		}
 
 		// Check each attachment
-		attachmentIds.forEach(function(attachmentId) {
+		attachmentIds.forEach(function (attachmentId) {
 			var attachment = processingAttachments[attachmentId];
 			attachment.attempts++;
 
@@ -170,9 +177,9 @@
 			data: {
 				action: 'optipress_check_conversion_status',
 				nonce: optipressUpload.nonce,
-				attachment_id: attachmentId
+				attachment_id: attachmentId,
 			},
-			success: function(response) {
+			success: function (response) {
 				if (response.success && response.data) {
 					if (response.data.status === 'completed') {
 						// Conversion complete
@@ -191,9 +198,9 @@
 					}
 				}
 			},
-			error: function() {
+			error: function () {
 				// Silently handle errors, will retry on next poll
-			}
+			},
 		});
 	}
 
@@ -226,15 +233,17 @@
 		}
 
 		// Add counter to the page
-		var $counter = $('<div id="optipress-savings-counter" class="optipress-counter-hidden">' +
-			'<div class="optipress-counter-label">OptiPress Session</div>' +
-			'<div class="optipress-counter-value">' +
+		var $counter = $(
+			'<div id="optipress-savings-counter" class="optipress-counter-hidden">' +
+				'<div class="optipress-counter-label">OptiPress Session</div>' +
+				'<div class="optipress-counter-value">' +
 				'<span id="optipress-session-savings">0 KB</span> saved' +
-			'</div>' +
-			'<div class="optipress-counter-count">' +
+				'</div>' +
+				'<div class="optipress-counter-count">' +
 				'<span id="optipress-session-count">0</span> images optimized' +
-			'</div>' +
-		'</div>');
+				'</div>' +
+				'</div>'
+		);
 
 		$('body').append($counter);
 	}
@@ -242,32 +251,39 @@
 	/**
 	 * Upload status panel
 	 */
-	function ensureUploadPanel(){
+	function ensureUploadPanel() {
 		if ($('#optipress-upload-panel').length) return;
-		var $panel = $('<div id="optipress-upload-panel" class="hidden">' +
-			'<div class="optipress-upload-header">' +
+		var $panel = $(
+			'<div id="optipress-upload-panel" class="hidden">' +
+				'<div class="optipress-upload-header">' +
 				'<span>OptiPress Uploads</span>' +
 				'<button type="button" class="optipress-upload-remove" title="Hide" aria-label="Hide">×</button>' +
-			'</div>' +
-			'<ul class="optipress-upload-list" id="optipress-upload-list"></ul>' +
-		'</div>');
-		$panel.on('click', '.optipress-upload-remove', function(){ $('#optipress-upload-panel').toggleClass('hidden'); });
+				'</div>' +
+				'<ul class="optipress-upload-list" id="optipress-upload-list"></ul>' +
+				'</div>'
+		);
+		$panel.on('click', '.optipress-upload-remove', function () {
+			$('#optipress-upload-panel').toggleClass('hidden');
+		});
 		$('body').append($panel);
 	}
 
-	function updateUploadPanelVisibility(){
+	function updateUploadPanelVisibility() {
 		var $list = $('#optipress-upload-list');
 		var hasItems = $list.children().length > 0;
 		$('#optipress-upload-panel').toggleClass('hidden', !hasItems);
 	}
 
-	function updateUploadPanelItem(attachmentId, status, data){
+	function updateUploadPanelItem(attachmentId, status, data) {
 		var $list = $('#optipress-upload-list');
 		var id = String(attachmentId);
 		var $item = $list.find('[data-id="' + id + '"]');
-		var filename = (data && data.filename) || (processingAttachments[id] && processingAttachments[id].filename) || ('#' + id);
+		var filename =
+			(data && data.filename) ||
+			(processingAttachments[id] && processingAttachments[id].filename) ||
+			'#' + id;
 		var message;
-		switch(status){
+		switch (status) {
 			case 'processing':
 				message = (data && data.message) || 'Converting image...';
 				break;
@@ -279,32 +295,56 @@
 				break;
 		}
 
-		if (!$item.length){
-			$item = $('<li class="optipress-upload-item processing" data-id="' + id + '">' +
-				'<span class="status-icon"><span class="spinner is-active"></span></span>' +
-				'<div class="optipress-upload-filename" title="' + filename + '">' + filename + '</div>' +
-				'<div class="optipress-upload-message">' + message + '</div>' +
-			'</li>');
+		if (!$item.length) {
+			$item = $(
+				'<li class="optipress-upload-item processing" data-id="' +
+					id +
+					'">' +
+					'<span class="status-icon"><span class="spinner is-active"></span></span>' +
+					'<div class="optipress-upload-filename" title="' +
+					filename +
+					'">' +
+					filename +
+					'</div>' +
+					'<div class="optipress-upload-message">' +
+					message +
+					'</div>' +
+					'</li>'
+			);
 			$list.prepend($item);
 		} else {
 			$item.find('.optipress-upload-message').text(message);
 		}
 
 		$item.removeClass('processing completed timeout');
-		switch(status){
+		switch (status) {
 			case 'processing':
 				$item.addClass('processing');
 				$item.find('.status-icon').html('<span class="spinner is-active"></span>');
 				break;
 			case 'completed':
 				$item.addClass('completed');
-				$item.find('.status-icon').html('<span class="dashicons dashicons-yes-alt"></span>');
-				setTimeout(function(){ $item.fadeOut(300, function(){ $(this).remove(); updateUploadPanelVisibility(); }); }, 8000);
+				$item
+					.find('.status-icon')
+					.html('<span class="dashicons dashicons-yes-alt"></span>');
+				setTimeout(function () {
+					$item.fadeOut(300, function () {
+						$(this).remove();
+						updateUploadPanelVisibility();
+					});
+				}, 8000);
 				break;
 			case 'timeout':
 				$item.addClass('timeout');
-				$item.find('.status-icon').html('<span class="dashicons dashicons-warning"></span>');
-				setTimeout(function(){ $item.fadeOut(300, function(){ $(this).remove(); updateUploadPanelVisibility(); }); }, 5000);
+				$item
+					.find('.status-icon')
+					.html('<span class="dashicons dashicons-warning"></span>');
+				setTimeout(function () {
+					$item.fadeOut(300, function () {
+						$(this).remove();
+						updateUploadPanelVisibility();
+					});
+				}, 5000);
 				break;
 		}
 
@@ -340,5 +380,4 @@
 			$counter.removeClass('optipress-counter-hidden');
 		}
 	}
-
 })(jQuery);

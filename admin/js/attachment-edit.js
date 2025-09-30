@@ -6,14 +6,14 @@
  * @package OptiPress
  */
 
-(function($) {
+(function ($) {
 	'use strict';
 
 	var processing = false;
 
-	$(document).ready(function() {
+	$(document).ready(function () {
 		// Convert Image button
-		$('#optipress-meta-box-content').on('click', '.optipress-convert-image', function(e) {
+		$('#optipress-meta-box-content').on('click', '.optipress-convert-image', function (e) {
 			e.preventDefault();
 
 			if (processing) return;
@@ -31,7 +31,7 @@
 		});
 
 		// Revert Image button
-		$('#optipress-meta-box-content').on('click', '.optipress-revert-image', function(e) {
+		$('#optipress-meta-box-content').on('click', '.optipress-revert-image', function (e) {
 			e.preventDefault();
 
 			if (processing) return;
@@ -45,7 +45,7 @@
 		});
 
 		// Switch Format button
-		$('#optipress-meta-box-content').on('click', '.optipress-switch-format', function(e) {
+		$('#optipress-meta-box-content').on('click', '.optipress-switch-format', function (e) {
 			e.preventDefault();
 
 			if (processing) return;
@@ -72,9 +72,9 @@
 				action: 'optipress_convert_single_image',
 				nonce: optipressAttachment.nonce,
 				attachment_id: attachmentId,
-				format: format
+				format: format,
 			},
-			success: function(response) {
+			success: function (response) {
 				processing = false;
 
 				if (response.success) {
@@ -89,26 +89,21 @@
 					// Reload attachment data in media modal if open
 					reloadAttachmentData(attachmentId);
 				} else {
-					var errorMsg = response.data && response.data.message
-						? response.data.message
-						: optipressAttachment.i18n.unknownError;
+					var errorMsg =
+						response.data && response.data.message
+							? response.data.message
+							: optipressAttachment.i18n.unknownError;
 
-					showNotice(
-						optipressAttachment.i18n.conversionError + ' ' + errorMsg,
-						'error'
-					);
+					showNotice(optipressAttachment.i18n.conversionError + ' ' + errorMsg, 'error');
 
 					hideLoading();
 				}
 			},
-			error: function(xhr, status, error) {
+			error: function (xhr, status, error) {
 				processing = false;
-				showNotice(
-					optipressAttachment.i18n.error + ': ' + error,
-					'error'
-				);
+				showNotice(optipressAttachment.i18n.error + ': ' + error, 'error');
 				hideLoading();
-			}
+			},
 		});
 	}
 
@@ -125,9 +120,9 @@
 			data: {
 				action: 'optipress_revert_single_image',
 				nonce: optipressAttachment.nonce,
-				attachment_id: attachmentId
+				attachment_id: attachmentId,
 			},
-			success: function(response) {
+			success: function (response) {
 				processing = false;
 
 				if (response.success) {
@@ -142,22 +137,20 @@
 					// Reload attachment data
 					reloadAttachmentData(attachmentId);
 				} else {
-					var errorMsg = response.data && response.data.message
-						? response.data.message
-						: optipressAttachment.i18n.unknownError;
+					var errorMsg =
+						response.data && response.data.message
+							? response.data.message
+							: optipressAttachment.i18n.unknownError;
 
 					showNotice(errorMsg, 'error');
 					hideLoading();
 				}
 			},
-			error: function(xhr, status, error) {
+			error: function (xhr, status, error) {
 				processing = false;
-				showNotice(
-					optipressAttachment.i18n.error + ': ' + error,
-					'error'
-				);
+				showNotice(optipressAttachment.i18n.error + ': ' + error, 'error');
 				hideLoading();
-			}
+			},
 		});
 	}
 
@@ -175,9 +168,9 @@
 				action: 'optipress_switch_format',
 				nonce: optipressAttachment.nonce,
 				attachment_id: attachmentId,
-				format: format
+				format: format,
 			},
-			success: function(response) {
+			success: function (response) {
 				processing = false;
 
 				if (response.success) {
@@ -192,26 +185,21 @@
 					// Reload attachment data
 					reloadAttachmentData(attachmentId);
 				} else {
-					var errorMsg = response.data && response.data.message
-						? response.data.message
-						: optipressAttachment.i18n.unknownError;
+					var errorMsg =
+						response.data && response.data.message
+							? response.data.message
+							: optipressAttachment.i18n.unknownError;
 
-					showNotice(
-						optipressAttachment.i18n.conversionError + ' ' + errorMsg,
-						'error'
-					);
+					showNotice(optipressAttachment.i18n.conversionError + ' ' + errorMsg, 'error');
 
 					hideLoading();
 				}
 			},
-			error: function(xhr, status, error) {
+			error: function (xhr, status, error) {
 				processing = false;
-				showNotice(
-					optipressAttachment.i18n.error + ': ' + error,
-					'error'
-				);
+				showNotice(optipressAttachment.i18n.error + ': ' + error, 'error');
 				hideLoading();
-			}
+			},
 		});
 	}
 
@@ -250,9 +238,9 @@
 
 		// Make dismissible (WordPress core handles this if wp-admin scripts are loaded)
 		if (typeof wp !== 'undefined' && wp.notices) {
-			$notice.find('.notice-dismiss').on('click', function() {
-				$notice.fadeTo(100, 0, function() {
-					$notice.slideUp(100, function() {
+			$notice.find('.notice-dismiss').on('click', function () {
+				$notice.fadeTo(100, 0, function () {
+					$notice.slideUp(100, function () {
 						$notice.remove();
 					});
 				});
@@ -261,9 +249,9 @@
 
 		// Auto-dismiss success notices after 5 seconds
 		if (type === 'success') {
-			setTimeout(function() {
-				$notice.fadeTo(300, 0, function() {
-					$notice.slideUp(200, function() {
+			setTimeout(function () {
+				$notice.fadeTo(300, 0, function () {
+					$notice.slideUp(200, function () {
 						$notice.remove();
 					});
 				});
@@ -286,5 +274,4 @@
 			}
 		}
 	}
-
 })(jQuery);

@@ -4,13 +4,13 @@
  * @package OptiPress
  */
 
-(function($) {
+(function ($) {
 	'use strict';
 
 	/**
- 	 * Initialize admin settings functionality
- 	 */
-	$(document).ready(function() {
+	 * Initialize admin settings functionality
+	 */
+	$(document).ready(function () {
 		// Initialize quality slider
 		initQualitySlider();
 
@@ -35,7 +35,7 @@
 		}
 
 		// Update display on slider change
-		$slider.on('input', function() {
+		$slider.on('input', function () {
 			$display.text($(this).val());
 		});
 	}
@@ -70,18 +70,30 @@
 					action: 'optipress_check_compatibility',
 					nonce: optipressAdmin.nonce,
 					engine: engine,
-					format: format
+					format: format,
 				},
-				success: function(response) {
+				success: function (response) {
 					if (response.success) {
-						$status.html('<span class="optipress-status-success">✓ ' + response.data.message + '</span>');
+						$status.html(
+							'<span class="optipress-status-success">✓ ' +
+								response.data.message +
+								'</span>'
+						);
 					} else {
-						$status.html('<span class="optipress-status-error">✗ ' + response.data.message + '</span>');
+						$status.html(
+							'<span class="optipress-status-error">✗ ' +
+								response.data.message +
+								'</span>'
+						);
 					}
 				},
-				error: function() {
-					$status.html('<span class="optipress-status-error">✗ ' + 'Failed to check compatibility' + '</span>');
-				}
+				error: function () {
+					$status.html(
+						'<span class="optipress-status-error">✗ ' +
+							'Failed to check compatibility' +
+							'</span>'
+					);
+				},
 			});
 		}
 
@@ -103,22 +115,23 @@
 			return;
 		}
 
-		$checkbox.on('change', function() {
+		$checkbox.on('change', function () {
 			if (!$(this).is(':checked')) {
-				var message = 'Warning: Disabling "Keep Originals" will permanently delete original image files after conversion.\n\n' +
+				var message =
+					'Warning: Disabling "Keep Originals" will permanently delete original image files after conversion.\n\n' +
 					'This cannot be undone, and you will not be able to revert conversions.\n\n' +
 					'Are you sure you want to disable this option?';
 
 				// Use OptipressNotices.createConfirm if available (non-blocking), fallback to window.confirm
-				OptipressNotices.createConfirm(message, { confirmLabel: 'Disable', cancelLabel: 'Keep Originals' })
-					.then(function(confirmed) {
-						if (!confirmed) {
-							$("input[name=\"optipress_options[keep_originals]\"]").prop('checked', true);
-						}
-					});
+				OptipressNotices.createConfirm(message, {
+					confirmLabel: 'Disable',
+					cancelLabel: 'Keep Originals',
+				}).then(function (confirmed) {
+					if (!confirmed) {
+						$('input[name="optipress_options[keep_originals]"]').prop('checked', true);
+					}
+				});
 			}
 		});
 	}
-
 })(jQuery);
-
