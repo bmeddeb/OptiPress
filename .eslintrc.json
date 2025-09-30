@@ -1,0 +1,27 @@
+{
+	"extends": [
+		"plugin:@wordpress/eslint-plugin/recommended"
+	],
+	"env": {
+		"browser": true,
+		"es6": true,
+		"jquery": true
+	},
+	"globals": {
+		"wp": "readonly",
+		"ajaxurl": "readonly",
+		"optipressAdmin": "readonly",
+		"optipressUpload": "readonly",
+		"optipressAttachment": "readonly",
+		"optipressSvgPreview": "readonly",
+		"OPTIPRESS_DEBUG": "writable"
+	},
+	"rules": {
+		"camelcase": "off",
+		"no-console": ["warn", { "allow": ["warn", "error", "log"] }],
+		"no-alert": "warn",
+		"indent": ["error", "tab"],
+		"quotes": ["error", "single"],
+		"semi": ["error", "always"]
+	}
+}

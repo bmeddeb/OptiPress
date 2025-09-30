@@ -11,15 +11,22 @@
   },
   "scripts": {
     "build": "npm run build:svg-preview && npm run build:admin",
-    "build:svg-preview": "esbuild src/js/svg-preview.js --bundle --minify --outfile=admin/js/svg-preview.bundle.js",
-    "build:admin": "esbuild src/js/admin-settings.js --bundle --outfile=admin/js/admin-settings.js",
+    "build:svg-preview": "esbuild src/js/svg-preview.js --bundle --minify --sourcemap --target=es2017 --outfile=admin/js/svg-preview.bundle.js",
+    "build:admin": "esbuild src/js/admin-settings.js --bundle --sourcemap --target=es2017 --outfile=admin/js/admin-settings.js",
     "watch": "npm run watch:svg-preview & npm run watch:admin",
-    "watch:svg-preview": "esbuild src/js/svg-preview.js --bundle --watch --outfile=admin/js/svg-preview.bundle.js",
-    "watch:admin": "esbuild src/js/admin-settings.js --bundle --watch --outfile=admin/js/admin-settings.js",
-    "dev": "npm run watch"
+    "watch:svg-preview": "esbuild src/js/svg-preview.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/svg-preview.bundle.js",
+    "watch:admin": "esbuild src/js/admin-settings.js --bundle --watch --sourcemap --target=es2017 --outfile=admin/js/admin-settings.js",
+    "dev": "npm run watch",
+    "lint": "eslint src/js admin/js --ext .js",
+    "lint:fix": "eslint src/js admin/js --ext .js --fix",
+    "format": "prettier --write \"src/**/*.js\" \"admin/js/*.js\" \"!admin/js/*.bundle.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"admin/js/*.js\" \"!admin/js/*.bundle.js\""
   },
   "devDependencies": {
-    "esbuild": "^0.20.0"
+    "@wordpress/eslint-plugin": "^17.0.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0"
   },
   "dependencies": {
     "dompurify": "^3.0.0"

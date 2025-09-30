@@ -1,0 +1,6 @@
+vendor/
+node_modules/
+dist/
+*.min.js
+*.bundle.js
+*.map

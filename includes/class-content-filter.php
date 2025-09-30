@@ -5,6 +5,25 @@
  * Handles front-end delivery of optimized images by filtering post content.
  * Uses WP_HTML_Tag_Processor (WP 6.2+) for safe HTML manipulation.
  *
+ * This class operates at the HTML output level, processing rendered content
+ * to catch images that weren't processed by WordPress core image functions.
+ *
+ * DELIVERY PATH PRECEDENCE:
+ * 1. Image_Converter (class-image-converter.php): Filters WordPress API functions
+ *    - Handles images served via wp_get_attachment_url(), the_post_thumbnail(), etc.
+ *    - First line of defense for properly coded themes/plugins
+ *
+ * 2. Content_Filter (this class): Filters HTML content output
+ *    - Handles hardcoded image URLs in post content, widgets, etc.
+ *    - Safety net for images that bypass WordPress image functions
+ *    - Processes: the_content, post_thumbnail_html, get_avatar, widget_text
+ *
+ * DOUBLE PROCESSING GUARD:
+ * - If an image is already converted by Image_Converter, Content_Filter detects
+ *   the converted URL format and skips reprocessing
+ * - Uses file_exists check to verify converted file availability
+ * - Static cache prevents repeated filesystem checks on same URL
+ *
  * @package OptiPress
  */
 

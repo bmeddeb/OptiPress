@@ -65,6 +65,12 @@ register_activation_hook( __FILE__, 'optipress_activate' );
 function optipress_deactivate() {
 	// Flush rewrite rules
 	flush_rewrite_rules();
+
+	// Clear scheduled events
+	$timestamp = wp_next_scheduled( 'optipress_cleanup_security_log' );
+	if ( $timestamp ) {
+		wp_unschedule_event( $timestamp, 'optipress_cleanup_security_log' );
+	}
 }
 register_deactivation_hook( __FILE__, 'optipress_deactivate' );
 

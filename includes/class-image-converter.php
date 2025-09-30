@@ -2,7 +2,23 @@
 /**
  * Image Converter Class
  *
- * Handles automatic image conversion on upload.
+ * Handles automatic image conversion on upload and serves converted images.
+ *
+ * This class operates at the WordPress API level, filtering image URLs through
+ * WordPress core functions (wp_get_attachment_url, wp_calculate_image_srcset, etc.).
+ *
+ * DELIVERY PATH PRECEDENCE:
+ * 1. Image_Converter (this class): Filters WordPress image functions (API level)
+ *    - wp_get_attachment_url: Direct attachment URLs
+ *    - wp_get_attachment_image_src: Image tag sources
+ *    - wp_calculate_image_srcset: Responsive image srcsets
+ *
+ * 2. Content_Filter (class-content-filter.php): Filters HTML output (content level)
+ *    - the_content, post_thumbnail_html, etc.: Catches hardcoded URLs
+ *
+ * These work complementary, not duplicated:
+ * - Image_Converter catches images served through WP functions (theme/plugin code)
+ * - Content_Filter catches remaining images in HTML content (editor, shortcodes, etc.)
  *
  * @package OptiPress
  */

@@ -86,6 +86,12 @@ class SVG_Sanitizer {
 
 		// Fix SVG metadata
 		add_filter( 'wp_update_attachment_metadata', array( $this, 'fix_svg_metadata' ), 10, 2 );
+
+		// Schedule security log cleanup
+		if ( ! wp_next_scheduled( 'optipress_cleanup_security_log' ) ) {
+			wp_schedule_event( time(), 'daily', 'optipress_cleanup_security_log' );
+		}
+		add_action( 'optipress_cleanup_security_log', array( $this, 'cleanup_old_security_logs' ) );
 	}
 
 	/**
@@ -353,17 +359,21 @@ class SVG_Sanitizer {
 		$security_log = get_option( 'optipress_security_log', array() );
 
 		$security_log[] = array(
-			'type'    => $event_type,
-			'file'    => basename( $file_path ),
-			'message' => $message,
-			'time'    => current_time( 'mysql' ),
-			'user'    => get_current_user_id(),
+			'type'      => $event_type,
+			'file'      => basename( $file_path ),
+			'message'   => $message,
+			'time'      => current_time( 'mysql' ),
+			'timestamp' => current_time( 'timestamp' ), // Add timestamp for age-based cleanup
+			'user'      => get_current_user_id(),
 		);
 
-		// Keep only last 100 events
+		// Keep only last 100 events (count-based limit)
 		if ( count( $security_log ) > 100 ) {
 			$security_log = array_slice( $security_log, -100 );
 		}
+
+		// Also clean up old entries (age-based limit)
+		$security_log = $this->filter_old_security_logs( $security_log );
 
 		update_option( 'optipress_security_log', $security_log );
 	}
@@ -544,6 +554,58 @@ class SVG_Sanitizer {
 		}
 
 		return $log;
+	}
+
+	/**
+	 * Filter old security log entries
+	 *
+	 * @param array $log Security log entries.
+	 * @return array Filtered log entries.
+	 */
+	private function filter_old_security_logs( $log ) {
+		/**
+		 * Filter the maximum age of security log entries in days.
+		 *
+		 * @param int $max_age_days Maximum age in days. Default 30.
+		 */
+		$max_age_days = apply_filters( 'optipress_security_log_max_age_days', 30 );
+		$cutoff_time = current_time( 'timestamp' ) - ( $max_age_days * DAY_IN_SECONDS );
+
+		return array_filter( $log, function( $entry ) use ( $cutoff_time ) {
+			// If timestamp doesn't exist (old format), keep the entry
+			if ( ! isset( $entry['timestamp'] ) ) {
+				return true;
+			}
+
+			return $entry['timestamp'] >= $cutoff_time;
+		} );
+	}
+
+	/**
+	 * Clean up old security log entries (scheduled daily)
+	 */
+	public function cleanup_old_security_logs() {
+		$log = get_option( 'optipress_security_log', array() );
+
+		if ( empty( $log ) ) {
+			return;
+		}
+
+		$original_count = count( $log );
+		$log = $this->filter_old_security_logs( $log );
+		$cleaned_count = count( $log );
+
+		// Only update if entries were removed
+		if ( $cleaned_count < $original_count ) {
+			update_option( 'optipress_security_log', $log );
+
+			// Log cleanup action (meta-logging)
+			error_log( sprintf(
+				'OptiPress: Cleaned up security log. Removed %d old entries, %d remaining.',
+				$original_count - $cleaned_count,
+				$cleaned_count
+			) );
+		}
 	}
 
 	/**
