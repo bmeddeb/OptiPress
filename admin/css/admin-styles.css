@@ -189,51 +189,7 @@
 	}
 }
 
-/* Upload Progress Status */
-.optipress-status {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	padding: 8px 10px;
-	font-size: 11px;
-	line-height: 1.4;
-	background: rgba(0, 0, 0, 0.85);
-	color: #fff;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	z-index: 10;
-}
-
-.optipress-status .spinner {
-	float: none;
-	margin: 0;
-	width: 16px;
-	height: 16px;
-	background-size: 16px 16px;
-}
-
-.optipress-status .dashicons {
-	font-size: 14px;
-	width: 14px;
-	height: 14px;
-}
-
-.optipress-status-text {
-	flex: 1;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.optipress-completed {
-	background: rgba(70, 180, 80, 0.95);
-}
-
-.optipress-timeout {
-	background: rgba(220, 50, 50, 0.95);
-}
+/* Upload Progress Status (overlay) removed; using floating panel instead */
 
 /* Session Savings Counter */
 #optipress-savings-counter {
