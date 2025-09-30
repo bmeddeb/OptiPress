@@ -237,7 +237,13 @@ class SVG_Sanitizer {
 	public function sanitize_svg_content( $svg_content ) {
 		// Set safe libxml flags to prevent XXE attacks
 		$prev_use_errors = libxml_use_internal_errors( true );
-		$prev_entity_loader = libxml_disable_entity_loader( true );
+
+		// libxml_disable_entity_loader() is deprecated in PHP 8.0+
+		// External entity loading is disabled by default in libxml 2.9.0+
+		$prev_entity_loader = null;
+		if ( PHP_VERSION_ID < 80000 ) {
+			$prev_entity_loader = libxml_disable_entity_loader( true );
+		}
 
 		try {
 			// Get sanitizer instance
@@ -269,7 +275,11 @@ class SVG_Sanitizer {
 		} finally {
 			// Restore libxml settings
 			libxml_use_internal_errors( $prev_use_errors );
-			libxml_disable_entity_loader( $prev_entity_loader );
+
+			// Restore entity loader only for PHP < 8.0
+			if ( PHP_VERSION_ID < 80000 && null !== $prev_entity_loader ) {
+				libxml_disable_entity_loader( $prev_entity_loader );
+			}
 		}
 	}
 
