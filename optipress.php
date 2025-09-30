@@ -41,13 +41,15 @@ add_action( 'init', 'optipress_load_textdomain' );
 function optipress_activate() {
 	// Set default options
 	$default_options = array(
-		'engine'          => 'auto',      // auto, gd, imagick
-		'format'          => 'webp',      // webp, avif
-		'quality'         => 85,          // 1-100
-		'auto_convert'    => true,
-		'keep_originals'  => true,
-		'svg_enabled'     => false,
-		'delivery_method' => 'htaccess',  // htaccess, content_filter, both
+		'engine'               => 'auto',      // auto, gd, imagick
+		'format'               => 'webp',      // webp, avif
+		'quality'              => 85,          // 1-100
+		'auto_convert'         => true,
+		'keep_originals'       => true,
+		'svg_enabled'          => false,
+		'enable_content_filter' => true,
+		'use_picture_element'  => false,
+		'delivery_method'      => 'htaccess',  // htaccess, content_filter, both
 	);
 
 	add_option( 'optipress_options', $default_options );
@@ -88,6 +90,9 @@ function optipress_load_files() {
 	// Batch processor
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-batch-processor.php';
 
+	// Content filter for front-end delivery
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-content-filter.php';
+
 	// Admin interface
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-admin-interface.php';
 }
@@ -110,6 +115,11 @@ function optipress_init() {
 
 	// Initialize SVG Sanitizer
 	\OptiPress\SVG_Sanitizer::get_instance();
+
+	// Initialize Content Filter (front-end only)
+	if ( ! is_admin() ) {
+		\OptiPress\Content_Filter::get_instance();
+	}
 
 	// Initialize Batch Processor (admin-only)
 	if ( is_admin() ) {

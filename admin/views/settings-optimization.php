@@ -136,6 +136,66 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 	</table>
 </div>
 
+<!-- Front-End Delivery Settings -->
+<div class="optipress-settings-section">
+	<h2><?php esc_html_e( 'Front-End Delivery', 'optipress' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Configure how optimized images are delivered to website visitors.', 'optipress' ); ?>
+	</p>
+
+	<?php
+	$enable_content_filter = isset( $options['enable_content_filter'] ) ? $options['enable_content_filter'] : true;
+	$use_picture_element = isset( $options['use_picture_element'] ) ? $options['use_picture_element'] : false;
+	?>
+
+	<table class="form-table" role="presentation">
+		<!-- Enable Content Filter -->
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Enable Content Filter', 'optipress' ); ?>
+			</th>
+			<td>
+				<fieldset>
+					<label>
+						<input type="checkbox" name="optipress_options[enable_content_filter]"
+							value="1" <?php checked( $enable_content_filter ); ?> />
+						<?php esc_html_e( 'Replace images in post content with optimized versions', 'optipress' ); ?>
+					</label>
+					<p class="description">
+						<?php esc_html_e( 'Automatically replaces image URLs in post content, widgets, and thumbnails. Works alongside WordPress image filters for complete coverage.', 'optipress' ); ?>
+					</p>
+				</fieldset>
+			</td>
+		</tr>
+
+		<!-- Picture Element -->
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Use Picture Element', 'optipress' ); ?>
+			</th>
+			<td>
+				<fieldset>
+					<label>
+						<input type="checkbox" name="optipress_options[use_picture_element]"
+							value="1" <?php checked( $use_picture_element ); ?> />
+						<?php esc_html_e( 'Generate &lt;picture&gt; elements with format-specific sources', 'optipress' ); ?>
+					</label>
+					<p class="description">
+						<?php esc_html_e( 'Uses HTML5 picture elements for better browser compatibility. If disabled, simply replaces image URLs (recommended for better caching plugin compatibility).', 'optipress' ); ?>
+					</p>
+				</fieldset>
+			</td>
+		</tr>
+	</table>
+
+	<div class="notice notice-info inline">
+		<p>
+			<strong><?php esc_html_e( 'Note:', 'optipress' ); ?></strong>
+			<?php esc_html_e( 'OptiPress automatically detects browser support via HTTP Accept headers. Only browsers that support WebP/AVIF will receive optimized images. Caching plugins (W3 Total Cache, WP Rocket, etc.) can further optimize delivery through server-level rewrites.', 'optipress' ); ?>
+		</p>
+	</div>
+</div>
+
 <!-- Batch Processing Section -->
 <div class="optipress-settings-section optipress-batch-section">
 	<h2><?php esc_html_e( 'Batch Processing', 'optipress' ); ?></h2>

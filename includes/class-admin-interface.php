@@ -99,13 +99,15 @@ class Admin_Interface {
 
 		// Start with existing values
 		$sanitized = wp_parse_args( $existing, array(
-			'engine'          => 'auto',
-			'format'          => 'webp',
-			'quality'         => 85,
-			'auto_convert'    => true,
-			'keep_originals'  => true,
-			'svg_enabled'     => false,
-			'delivery_method' => 'htaccess',
+			'engine'               => 'auto',
+			'format'               => 'webp',
+			'quality'              => 85,
+			'auto_convert'         => true,
+			'keep_originals'       => true,
+			'svg_enabled'          => false,
+			'enable_content_filter' => true,
+			'use_picture_element'  => false,
+			'delivery_method'      => 'htaccess',
 		) );
 
 		// Engine (only update if present in input)
@@ -142,6 +144,14 @@ class Admin_Interface {
 		// SVG tab fields
 		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=svg' ) !== false ) ) {
 			$sanitized['svg_enabled'] = isset( $input['svg_enabled'] ) && $input['svg_enabled'];
+		}
+
+		// Front-end delivery options (optimization tab)
+		if ( isset( $input['enable_content_filter'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+			$sanitized['enable_content_filter'] = isset( $input['enable_content_filter'] ) && $input['enable_content_filter'];
+		}
+		if ( isset( $input['use_picture_element'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+			$sanitized['use_picture_element'] = isset( $input['use_picture_element'] ) && $input['use_picture_element'];
 		}
 
 		// Delivery method (only update if present in input)
