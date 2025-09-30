@@ -67,10 +67,37 @@ class GD_Engine implements ImageEngineInterface {
 	public function convert( $source_path, $dest_path, $format, $quality ) {
 		// Validate inputs
 		if ( ! file_exists( $source_path ) || ! is_readable( $source_path ) ) {
+			error_log( 'OptiPress GD: Source file does not exist or is not readable: ' . $source_path );
 			return false;
 		}
 
 		if ( ! $this->supports_format( $format ) ) {
+			error_log( 'OptiPress GD: Format not supported: ' . $format );
+			return false;
+		}
+
+		// Check available memory before processing
+		$memory_limit = $this->get_memory_limit();
+		$memory_usage = memory_get_usage( true );
+		$available_memory = $memory_limit - $memory_usage;
+
+		// Require at least 64MB free memory for image processing
+		if ( $available_memory < 67108864 ) {
+			error_log( sprintf(
+				'OptiPress GD: Insufficient memory for conversion. Available: %s, Required: 64MB',
+				size_format( $available_memory )
+			) );
+			return false;
+		}
+
+		// Check file size - skip very large files
+		$file_size = filesize( $source_path );
+		if ( $file_size > 10485760 ) { // 10MB
+			error_log( sprintf(
+				'OptiPress GD: File too large for safe conversion: %s (%s)',
+				basename( $source_path ),
+				size_format( $file_size )
+			) );
 			return false;
 		}
 
@@ -81,6 +108,24 @@ class GD_Engine implements ImageEngineInterface {
 		$image_resource = $this->load_image( $source_path );
 
 		if ( false === $image_resource ) {
+			error_log( 'OptiPress GD: Failed to load image: ' . $source_path );
+			return false;
+		}
+
+		// Check image dimensions to prevent memory issues
+		$width = imagesx( $image_resource );
+		$height = imagesy( $image_resource );
+		$pixels = $width * $height;
+
+		// Skip extremely large images (> 25 megapixels)
+		if ( $pixels > 25000000 ) {
+			error_log( sprintf(
+				'OptiPress GD: Image dimensions too large: %dx%d (%s pixels)',
+				$width,
+				$height,
+				number_format( $pixels )
+			) );
+			imagedestroy( $image_resource );
 			return false;
 		}
 
@@ -91,24 +136,72 @@ class GD_Engine implements ImageEngineInterface {
 		try {
 			switch ( $format ) {
 				case 'webp':
-					$result = imagewebp( $image_resource, $dest_path, $quality );
+					$result = @imagewebp( $image_resource, $dest_path, $quality );
+					if ( false === $result ) {
+						error_log( 'OptiPress GD: imagewebp() failed' );
+					}
 					break;
 
 				case 'avif':
 					// AVIF quality parameter works differently in GD
 					// Use -1 for lossless, 0-100 for lossy (lower = better quality)
 					$avif_quality = 100 - $quality;
-					$result       = imageavif( $image_resource, $dest_path, $avif_quality );
+					$result       = @imageavif( $image_resource, $dest_path, $avif_quality );
+					if ( false === $result ) {
+						error_log( 'OptiPress GD: imageavif() failed' );
+					}
 					break;
 			}
 		} catch ( \Exception $e ) {
+			error_log( 'OptiPress GD: Exception during conversion: ' . $e->getMessage() );
+			$result = false;
+		} catch ( \Throwable $e ) {
+			error_log( 'OptiPress GD: Fatal error during conversion: ' . $e->getMessage() );
 			$result = false;
 		}
 
 		// Free memory
 		imagedestroy( $image_resource );
 
+		// Verify output file was created
+		if ( $result && ( ! file_exists( $dest_path ) || filesize( $dest_path ) === 0 ) ) {
+			error_log( 'OptiPress GD: Conversion produced no output file or empty file' );
+			return false;
+		}
+
 		return $result;
+	}
+
+	/**
+	 * Get PHP memory limit in bytes
+	 *
+	 * @return int Memory limit in bytes.
+	 */
+	private function get_memory_limit() {
+		$memory_limit = ini_get( 'memory_limit' );
+
+		if ( '-1' === $memory_limit ) {
+			// No limit
+			return PHP_INT_MAX;
+		}
+
+		// Convert to bytes
+		$unit = strtolower( substr( $memory_limit, -1 ) );
+		$value = (int) $memory_limit;
+
+		switch ( $unit ) {
+			case 'g':
+				$value *= 1024 * 1024 * 1024;
+				break;
+			case 'm':
+				$value *= 1024 * 1024;
+				break;
+			case 'k':
+				$value *= 1024;
+				break;
+		}
+
+		return $value;
 	}
 
 	/**
