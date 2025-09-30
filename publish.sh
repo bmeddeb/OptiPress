@@ -1,15 +1,17 @@
 #!/bin/bash
 
 #
-# OptiPress Plugin Packaging Utility
+# OptiPress Plugin Release & Packaging Utility
 #
-# Usage: ./package.sh [version]
-# Example: ./package.sh 0.2.9
+# Usage: ./publish.sh [version]
+# Example: ./publish.sh 0.4.8
 #
 # This script:
-# 1. Updates version numbers in plugin files
+# 1. Updates version numbers in all plugin files
 # 2. Creates a clean distribution package in ./dist
-# 3. Excludes development files as defined in .distignore
+# 3. Commits changes to git (optional)
+# 4. Creates and pushes git tags (optional)
+# 5. Creates GitHub releases with auto-updates support (optional)
 #
 
 set -e  # Exit on any error
@@ -53,6 +55,10 @@ show_usage() {
     echo "  4. Update Stable tag in readme.txt (WordPress.org requirement)"
     echo "  5. Create clean distribution package"
     echo "  6. Generate OptiPress-[version].zip in ./dist"
+    echo "  7. Optionally commit changes to git"
+    echo "  8. Optionally create git tag"
+    echo "  9. Optionally push to GitHub"
+    echo " 10. Optionally create GitHub release (requires gh CLI)"
 }
 
 # Validate inputs
@@ -222,7 +228,160 @@ echo "📁 Source:  ./dist/optipress/"
 echo "🔢 Version: $VERSION"
 echo "📊 Size:    $PACKAGE_SIZE"
 echo ""
-print_status "Ready for distribution!"
+
+# Step 9: Git operations
+echo ""
+print_status "Git & GitHub Integration"
+echo ""
+
+# Check if git is initialized
+if [ ! -d ".git" ]; then
+    print_warning "Not a git repository. Skipping git operations."
+else
+    # Check for uncommitted changes
+    if [[ -n $(git status -s) ]]; then
+        print_status "Uncommitted changes detected:"
+        git status -s
+        echo ""
+        echo -n "Commit version changes to git? (Y/n): "
+        read -r git_commit_response
+
+        if [[ ! "$git_commit_response" =~ ^[Nn]$ ]]; then
+            # Commit changes
+            print_status "Committing version changes..."
+            git add optipress.php readme.txt package.json 2>/dev/null || true
+            git commit -m "Release version $VERSION
+
+- Updated version to $VERSION in all files
+- Created distribution package
+- Ready for release"
+
+            print_success "Changes committed"
+        fi
+    else
+        print_status "Working directory is clean"
+    fi
+
+    # Create git tag
+    echo ""
+    echo -n "Create git tag v$VERSION? (Y/n): "
+    read -r git_tag_response
+
+    if [[ ! "$git_tag_response" =~ ^[Nn]$ ]]; then
+        # Check if tag already exists
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            print_warning "Tag v$VERSION already exists"
+            echo -n "Delete and recreate tag? (y/N): "
+            read -r delete_tag_response
+            if [[ "$delete_tag_response" =~ ^[Yy]$ ]]; then
+                git tag -d "v$VERSION"
+                git push origin :refs/tags/v$VERSION 2>/dev/null || true
+                print_status "Old tag deleted"
+            else
+                print_warning "Skipping tag creation"
+                git_tag_response="n"
+            fi
+        fi
+
+        if [[ ! "$git_tag_response" =~ ^[Nn]$ ]]; then
+            print_status "Creating tag v$VERSION..."
+            git tag -a "v$VERSION" -m "Release version $VERSION"
+            print_success "Tag v$VERSION created"
+        fi
+    fi
+
+    # Push to remote
+    echo ""
+    echo -n "Push to GitHub? (Y/n): "
+    read -r git_push_response
+
+    if [[ ! "$git_push_response" =~ ^[Nn]$ ]]; then
+        print_status "Pushing to remote..."
+
+        # Get current branch
+        CURRENT_BRANCH=$(git branch --show-current)
+
+        # Push commits
+        if git push origin "$CURRENT_BRANCH"; then
+            print_success "Pushed to origin/$CURRENT_BRANCH"
+        else
+            print_error "Failed to push commits"
+        fi
+
+        # Push tag if it was created
+        if [[ ! "$git_tag_response" =~ ^[Nn]$ ]]; then
+            if git push origin "v$VERSION"; then
+                print_success "Pushed tag v$VERSION"
+            else
+                print_error "Failed to push tag"
+            fi
+        fi
+    fi
+
+    # GitHub Release (if gh CLI is installed)
+    if command -v gh >/dev/null 2>&1; then
+        echo ""
+        echo -n "Create GitHub Release? (y/N): "
+        read -r gh_release_response
+
+        if [[ "$gh_release_response" =~ ^[Yy]$ ]]; then
+            print_status "Creating GitHub release..."
+
+            # Prompt for release notes
+            echo ""
+            echo "Enter release notes (press Ctrl+D when done, or leave empty for auto-generated):"
+            RELEASE_NOTES=$(cat)
+
+            if [ -z "$RELEASE_NOTES" ]; then
+                # Auto-generate release notes
+                RELEASE_NOTES="Release version $VERSION
+
+## What's Changed
+
+- Version bump to $VERSION
+- See commit history for detailed changes
+
+## Installation
+
+Download \`OptiPress-$VERSION.zip\` and upload to WordPress via Plugins > Add New > Upload Plugin.
+
+## Auto-Updates
+
+If you're using OptiPress with GitHub auto-updates enabled, WordPress will notify you of this update within 12 hours."
+            fi
+
+            # Create release with gh CLI
+            if gh release create "v$VERSION" \
+                "dist/OptiPress-$VERSION.zip" \
+                --title "OptiPress v$VERSION" \
+                --notes "$RELEASE_NOTES"; then
+                print_success "GitHub release created successfully!"
+                echo ""
+                echo "🎉 Release URL: https://github.com/bmeddeb/OptiPress/releases/tag/v$VERSION"
+            else
+                print_error "Failed to create GitHub release"
+                echo ""
+                print_status "You can create it manually at:"
+                echo "https://github.com/bmeddeb/OptiPress/releases/new?tag=v$VERSION"
+            fi
+        fi
+    else
+        print_warning "GitHub CLI (gh) not installed. Skipping GitHub release creation."
+        echo "Install it from: https://cli.github.com/"
+        echo ""
+        echo "Or create release manually at:"
+        echo "https://github.com/bmeddeb/OptiPress/releases/new?tag=v$VERSION"
+    fi
+fi
+
+echo ""
+print_success "🎉 All done!"
+echo ""
+print_status "Next steps:"
+echo "  1. If you created a GitHub release, auto-updates will work within 12 hours"
+echo "  2. Users can manually update via Dashboard → Updates → Check Again"
+echo "  3. Distribution package is ready at: ./dist/OptiPress-$VERSION.zip"
+echo ""
 
 # Optional: Show package contents
 echo -n "Show package contents? (y/N): "

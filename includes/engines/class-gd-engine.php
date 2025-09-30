@@ -30,7 +30,7 @@ class GD_Engine implements ImageEngineInterface {
 	}
 
 	/**
-	 * Check if GD supports a specific format
+	 * Check if GD supports a specific output format
 	 *
 	 * @param string $format Format to check ('webp' or 'avif').
 	 * @return bool Whether the format is supported.
@@ -53,6 +53,71 @@ class GD_Engine implements ImageEngineInterface {
 			default:
 				return false;
 		}
+	}
+
+	/**
+	 * Get list of supported input image formats
+	 *
+	 * Dynamically detects which image formats GD can read on this server.
+	 *
+	 * @return array Array of supported MIME types.
+	 */
+	public function get_supported_input_formats() {
+		if ( ! $this->is_available() ) {
+			return array();
+		}
+
+		$formats = array();
+
+		// JPEG - always supported if GD is available
+		if ( function_exists( 'imagecreatefromjpeg' ) ) {
+			$formats[] = 'image/jpeg';
+		}
+
+		// PNG - always supported if GD is available
+		if ( function_exists( 'imagecreatefrompng' ) ) {
+			$formats[] = 'image/png';
+		}
+
+		// GIF
+		if ( function_exists( 'imagecreatefromgif' ) ) {
+			$formats[] = 'image/gif';
+		}
+
+		// WebP (can convert WebP to WebP/AVIF for recompression)
+		if ( function_exists( 'imagecreatefromwebp' ) ) {
+			$formats[] = 'image/webp';
+		}
+
+		// BMP (PHP 7.2+)
+		if ( function_exists( 'imagecreatefrombmp' ) ) {
+			$formats[] = 'image/bmp';
+			$formats[] = 'image/x-ms-bmp';
+			$formats[] = 'image/x-bmp';
+		}
+
+		// TIFF (PHP 7.4+)
+		if ( function_exists( 'imagecreatefromtiff' ) ) {
+			$formats[] = 'image/tiff';
+		}
+
+		// WBMP (Wireless Bitmap)
+		if ( function_exists( 'imagecreatefromwbmp' ) ) {
+			$formats[] = 'image/vnd.wap.wbmp';
+		}
+
+		// XBM (X BitMap)
+		if ( function_exists( 'imagecreatefromxbm' ) ) {
+			$formats[] = 'image/x-xbitmap';
+			$formats[] = 'image/xbm';
+		}
+
+		// AVIF input (PHP 8.1+)
+		if ( function_exists( 'imagecreatefromavif' ) ) {
+			$formats[] = 'image/avif';
+		}
+
+		return $formats;
 	}
 
 	/**
@@ -262,6 +327,51 @@ class GD_Engine implements ImageEngineInterface {
 			case 'image/webp':
 				if ( function_exists( 'imagecreatefromwebp' ) ) {
 					$image = @imagecreatefromwebp( $file_path );
+
+					// Preserve transparency for WebP
+					if ( false !== $image ) {
+						imagealphablending( $image, false );
+						imagesavealpha( $image, true );
+					}
+				}
+				break;
+
+			case 'image/bmp':
+			case 'image/x-ms-bmp':
+			case 'image/x-bmp':
+				if ( function_exists( 'imagecreatefrombmp' ) ) {
+					$image = @imagecreatefrombmp( $file_path );
+				}
+				break;
+
+			case 'image/tiff':
+				if ( function_exists( 'imagecreatefromtiff' ) ) {
+					$image = @imagecreatefromtiff( $file_path );
+				}
+				break;
+
+			case 'image/vnd.wap.wbmp':
+				if ( function_exists( 'imagecreatefromwbmp' ) ) {
+					$image = @imagecreatefromwbmp( $file_path );
+				}
+				break;
+
+			case 'image/x-xbitmap':
+			case 'image/xbm':
+				if ( function_exists( 'imagecreatefromxbm' ) ) {
+					$image = @imagecreatefromxbm( $file_path );
+				}
+				break;
+
+			case 'image/avif':
+				if ( function_exists( 'imagecreatefromavif' ) ) {
+					$image = @imagecreatefromavif( $file_path );
+
+					// Preserve transparency for AVIF
+					if ( false !== $image ) {
+						imagealphablending( $image, false );
+						imagesavealpha( $image, true );
+					}
 				}
 				break;
 		}

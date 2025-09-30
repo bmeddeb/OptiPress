@@ -30,7 +30,7 @@ class Imagick_Engine implements ImageEngineInterface {
 	}
 
 	/**
-	 * Check if Imagick supports a specific format
+	 * Check if Imagick supports a specific output format
 	 *
 	 * @param string $format Format to check ('webp' or 'avif').
 	 * @return bool Whether the format is supported.
@@ -48,6 +48,65 @@ class Imagick_Engine implements ImageEngineInterface {
 		} catch ( \Exception $e ) {
 			return false;
 		}
+	}
+
+	/**
+	 * Get list of supported input image formats
+	 *
+	 * Queries Imagick for available formats and returns common raster image types.
+	 * Imagick can read hundreds of formats, but we filter to practical image formats.
+	 *
+	 * @return array Array of supported MIME types.
+	 */
+	public function get_supported_input_formats() {
+		if ( ! $this->is_available() ) {
+			return array();
+		}
+
+		try {
+			$imagick_formats = \Imagick::queryFormats();
+		} catch ( \Exception $e ) {
+			return array();
+		}
+
+		// Map Imagick format codes to MIME types
+		// Only include common raster image formats
+		$format_map = array(
+			'JPEG' => 'image/jpeg',
+			'JPG'  => 'image/jpeg',
+			'PNG'  => 'image/png',
+			'GIF'  => 'image/gif',
+			'WEBP' => 'image/webp',
+			'BMP'  => 'image/bmp',
+			'TIFF' => 'image/tiff',
+			'TIF'  => 'image/tiff',
+			'AVIF' => 'image/avif',
+			'HEIC' => 'image/heic',
+			'HEIF' => 'image/heif',
+			'ICO'  => 'image/x-icon',
+			'TGA'  => 'image/x-tga',
+			'PSD'  => 'image/vnd.adobe.photoshop',
+			'WEBM' => 'image/webp', // WebM single frame
+		);
+
+		$supported_mimes = array();
+
+		foreach ( $format_map as $imagick_format => $mime_type ) {
+			if ( in_array( $imagick_format, $imagick_formats, true ) ) {
+				// Avoid duplicates (e.g., JPEG and JPG both map to image/jpeg)
+				if ( ! in_array( $mime_type, $supported_mimes, true ) ) {
+					$supported_mimes[] = $mime_type;
+				}
+			}
+		}
+
+		// Also add BMP variants
+		if ( in_array( 'image/bmp', $supported_mimes, true ) ) {
+			$supported_mimes[] = 'image/x-ms-bmp';
+			$supported_mimes[] = 'image/x-bmp';
+		}
+
+		return $supported_mimes;
 	}
 
 	/**

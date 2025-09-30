@@ -55,11 +55,15 @@ $wpdb->query(
 $upload_dir = wp_upload_dir();
 $base_dir = $upload_dir['basedir'];
 
-// Get all attachments with JPG/PNG mime types
+// Get all convertible image attachments
+// Note: Since we're in uninstall, we can't easily access the engine registry,
+// so we query for all images and check if converted versions exist
 $attachments = $wpdb->get_results(
-	"SELECT ID FROM {$wpdb->posts}
-	WHERE post_type = 'attachment'
-	AND post_mime_type IN ('image/jpeg', 'image/png')"
+	"SELECT DISTINCT p.ID FROM {$wpdb->posts} p
+	INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+	WHERE p.post_type = 'attachment'
+	AND pm.meta_key = '_optipress_converted'
+	AND pm.meta_value = '1'"
 );
 
 foreach ( $attachments as $attachment ) {

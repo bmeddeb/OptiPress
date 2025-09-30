@@ -24,15 +24,12 @@
 		if (!name) return '';
 		var m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
 		if (!m) return '';
-		switch (m[1]) {
-			case 'jpg':
-			case 'jpeg':
-				return 'image/jpeg';
-			case 'png':
-				return 'image/png';
-			default:
-				return '';
-		}
+
+		// Use extension map from PHP
+		var extensionMap = window.optipressUpload && window.optipressUpload.extensionMap || {};
+		var ext = m[1];
+
+		return extensionMap[ext] || '';
 	}
 
 	function getAttachmentMime(att) {
@@ -45,7 +42,10 @@
 	function isConvertibleMime(mime) {
 		if (!mime) return false;
 		mime = mime.toLowerCase();
-		return mime === 'image/jpeg' || mime === 'image/png';
+
+		// Use supported MIME types from PHP
+		var supportedMimes = window.optipressUpload && window.optipressUpload.supportedMimeTypes || [];
+		return supportedMimes.indexOf(mime) !== -1;
 	}
 
 	/**

@@ -27,12 +27,22 @@ interface ImageEngineInterface {
 	public function is_available();
 
 	/**
-	 * Check if the engine supports a specific format
+	 * Check if the engine supports a specific output format
 	 *
 	 * @param string $format Format to check ('webp' or 'avif').
 	 * @return bool Whether the format is supported.
 	 */
 	public function supports_format( $format );
+
+	/**
+	 * Get list of supported input image formats (MIME types)
+	 *
+	 * Returns an array of MIME types that this engine can read and convert.
+	 * For example: ['image/jpeg', 'image/png', 'image/gif', 'image/tiff']
+	 *
+	 * @return array Array of supported MIME types.
+	 */
+	public function get_supported_input_formats();
 
 	/**
 	 * Convert an image from source to destination

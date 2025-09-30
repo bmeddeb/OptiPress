@@ -269,7 +269,7 @@ class Engine_Registry {
 	}
 
 	/**
-	 * Get engines that support a specific format
+	 * Get engines that support a specific output format
 	 *
 	 * @param string $format Format to check ('webp' or 'avif').
 	 * @return array Array of engine names that support the format.
@@ -284,5 +284,41 @@ class Engine_Registry {
 		}
 
 		return $supporting;
+	}
+
+	/**
+	 * Get all supported input image formats from all available engines
+	 *
+	 * Returns a unified list of MIME types that can be converted by at least
+	 * one available engine on this system.
+	 *
+	 * @return array Array of supported MIME types (deduplicated).
+	 */
+	public function get_all_supported_input_formats() {
+		$all_formats = array();
+
+		foreach ( $this->engines as $engine ) {
+			if ( $engine->is_available() ) {
+				$engine_formats = $engine->get_supported_input_formats();
+				$all_formats = array_merge( $all_formats, $engine_formats );
+			}
+		}
+
+		// Remove duplicates
+		$all_formats = array_unique( $all_formats );
+
+		// Re-index array (remove gaps from array_unique)
+		return array_values( $all_formats );
+	}
+
+	/**
+	 * Check if a MIME type is supported for conversion
+	 *
+	 * @param string $mime_type MIME type to check (e.g., 'image/jpeg').
+	 * @return bool Whether this MIME type can be converted.
+	 */
+	public function is_mime_type_supported( $mime_type ) {
+		$supported_formats = $this->get_all_supported_input_formats();
+		return in_array( $mime_type, $supported_formats, true );
 	}
 }

@@ -350,7 +350,7 @@ class Image_Converter {
 	/**
 	 * Check if file should be converted
 	 *
-	 * Only convert JPEG and PNG files.
+	 * Checks if the file type is supported by any available conversion engine.
 	 *
 	 * @param string $file_path Path to file.
 	 * @return bool Whether file should be converted.
@@ -362,9 +362,9 @@ class Image_Converter {
 			return false;
 		}
 
-		$allowed_types = array( 'image/jpeg', 'image/png' );
-
-		return in_array( $image_info['mime'], $allowed_types, true );
+		// Get supported formats from available engines
+		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+		return $registry->is_mime_type_supported( $image_info['mime'] );
 	}
 
 	/**
@@ -805,7 +805,9 @@ class Image_Converter {
 
 		// Check if this is a supported image type
 		$mime_type = get_post_mime_type( $attachment_id );
-		if ( ! in_array( $mime_type, array( 'image/jpeg', 'image/png' ), true ) ) {
+		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+
+		if ( ! $registry->is_mime_type_supported( $mime_type ) ) {
 			return;
 		}
 

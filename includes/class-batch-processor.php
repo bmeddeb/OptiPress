@@ -155,12 +155,15 @@ class Batch_Processor {
 	private function get_image_stats() {
 		global $wpdb;
 
-		// Get all JPG and PNG attachments
+		// Get supported MIME types from available engines
+		$mime_types_in = $this->get_mime_types_sql_in();
+
+		// Get all supported image attachments
 		$query = "
 			SELECT COUNT(ID) as total
 			FROM {$wpdb->posts}
 			WHERE post_type = 'attachment'
-			AND post_mime_type IN ('image/jpeg', 'image/png')
+			AND post_mime_type IN ($mime_types_in)
 		";
 
 		$total = absint( $wpdb->get_var( $query ) );
@@ -171,7 +174,7 @@ class Batch_Processor {
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
 			WHERE p.post_type = 'attachment'
-			AND p.post_mime_type IN ('image/jpeg', 'image/png')
+			AND p.post_mime_type IN ($mime_types_in)
 			AND pm.meta_key = '_optipress_converted'
 			AND pm.meta_value = '1'
 		";
@@ -197,6 +200,30 @@ class Batch_Processor {
 	}
 
 	/**
+	 * Get SQL IN clause for supported MIME types
+	 *
+	 * @return string SQL-safe comma-separated quoted MIME types.
+	 */
+	private function get_mime_types_sql_in() {
+		global $wpdb;
+
+		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+		$mime_types = $registry->get_all_supported_input_formats();
+
+		if ( empty( $mime_types ) ) {
+			// Fallback to JPEG and PNG if no engines available
+			$mime_types = array( 'image/jpeg', 'image/png' );
+		}
+
+		// Prepare each MIME type for SQL
+		$prepared = array_map( function( $mime ) use ( $wpdb ) {
+			return $wpdb->prepare( '%s', $mime );
+		}, $mime_types );
+
+		return implode( ',', $prepared );
+	}
+
+	/**
 	 * Process a batch of images
 	 *
 	 * @param int $offset Starting offset.
@@ -206,6 +233,9 @@ class Batch_Processor {
 	private function process_image_batch( $offset, $limit ) {
 		global $wpdb;
 
+		// Get supported MIME types
+		$mime_types_in = $this->get_mime_types_sql_in();
+
 		// Get unconverted images
 		$query = $wpdb->prepare(
 			"
@@ -213,7 +243,7 @@ class Batch_Processor {
 			FROM {$wpdb->posts} p
 			LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_optipress_converted'
 			WHERE p.post_type = 'attachment'
-			AND p.post_mime_type IN ('image/jpeg', 'image/png')
+			AND p.post_mime_type IN ($mime_types_in)
 			AND (pm.meta_value IS NULL OR pm.meta_value != '1')
 			ORDER BY p.ID ASC
 			LIMIT %d OFFSET %d
@@ -313,6 +343,9 @@ class Batch_Processor {
 	private function revert_image_batch( $offset, $limit ) {
 		global $wpdb;
 
+		// Get supported MIME types
+		$mime_types_in = $this->get_mime_types_sql_in();
+
 		// Get converted images
 		$query = $wpdb->prepare(
 			"
@@ -320,7 +353,7 @@ class Batch_Processor {
 			FROM {$wpdb->posts} p
 			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
 			WHERE p.post_type = 'attachment'
-			AND p.post_mime_type IN ('image/jpeg', 'image/png')
+			AND p.post_mime_type IN ($mime_types_in)
 			AND pm.meta_key = '_optipress_converted'
 			AND pm.meta_value = '1'
 			ORDER BY p.ID ASC

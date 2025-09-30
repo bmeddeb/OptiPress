@@ -87,7 +87,7 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 			</th>
 			<td>
 				<input type="range" name="optipress_options[quality]" id="optipress_quality"
-					min="1" max="100" value="<?php echo esc_attr( $quality ); ?>"
+					min="1" max="100" step="5" value="<?php echo esc_attr( $quality ); ?>"
 					class="optipress-quality-slider" />
 				<span id="optipress-quality-value" class="optipress-quality-display"><?php echo esc_html( $quality ); ?></span>
 				<p class="description">

@@ -64,9 +64,11 @@ class Attachment_Meta_Box {
 			return;
 		}
 
-		// Only add for JPEG/PNG (convertible types)
+		// Only add for convertible image types
 		$mime_type = get_post_mime_type( $post->ID );
-		if ( ! in_array( $mime_type, array( 'image/jpeg', 'image/png' ), true ) ) {
+		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+
+		if ( ! $registry->is_mime_type_supported( $mime_type ) ) {
 			return;
 		}
 

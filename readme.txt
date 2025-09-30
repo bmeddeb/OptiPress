@@ -4,7 +4,7 @@ Tags: image optimization, webp, avif, svg, performance
 Requires at least: 6.7
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.4.8
+Stable tag: 0.4.9
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
