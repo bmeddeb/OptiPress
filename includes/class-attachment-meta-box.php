@@ -106,10 +106,8 @@ class Attachment_Meta_Box {
 		<div id="optipress-meta-box-content" data-attachment-id="<?php echo esc_attr( $attachment_id ); ?>">
 			<?php if ( $is_converted && $conversion_info ) : ?>
 				<?php $this->render_converted_state( $attachment_id, $conversion_info, $registry ); ?>
-			<?php elseif ( ! $auto_convert ) : ?>
-				<?php $this->render_not_converted_state( $attachment_id, $registry ); ?>
 			<?php else : ?>
-				<?php $this->render_auto_convert_info(); ?>
+				<?php $this->render_not_converted_state( $attachment_id, $registry, $auto_convert ); ?>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -210,8 +208,9 @@ class Attachment_Meta_Box {
 	 *
 	 * @param int   $attachment_id Attachment ID.
 	 * @param mixed $registry      Engine registry instance.
+	 * @param bool  $auto_convert  Whether auto-convert is enabled.
 	 */
-	private function render_not_converted_state( $attachment_id, $registry ) {
+	private function render_not_converted_state( $attachment_id, $registry, $auto_convert = false ) {
 		$webp_supported = $registry->validate_engine_format( 'auto', 'webp' )['valid'];
 		$avif_supported = $registry->validate_engine_format( 'auto', 'avif' )['valid'];
 
@@ -223,8 +222,14 @@ class Attachment_Meta_Box {
 				<span class="optipress-status-value"><?php esc_html_e( 'Not optimized', 'optipress' ); ?></span>
 			</p>
 
+			<?php if ( $auto_convert ) : ?>
+			<p class="description" style="margin: 10px 0; padding: 8px; background: #f0f6fc; border-left: 3px solid #2271b1;">
+				<?php esc_html_e( 'Auto-convert is enabled for new uploads. This image can be manually optimized below.', 'optipress' ); ?>
+			</p>
+			<?php endif; ?>
+
 			<div class="optipress-format-selector">
-				<p><strong><?php esc_html_e( 'Convert to:', 'optipress' ); ?></strong></p>
+				<p><strong><?php esc_html_e( 'Optimize to:', 'optipress' ); ?></strong></p>
 
 				<?php if ( $webp_supported || $avif_supported ) : ?>
 				<div class="optipress-format-options">
@@ -244,7 +249,7 @@ class Attachment_Meta_Box {
 				</div>
 
 				<button type="button" class="button button-primary optipress-convert-image">
-					<?php esc_html_e( 'Convert Image', 'optipress' ); ?>
+					<?php esc_html_e( 'Optimize Image', 'optipress' ); ?>
 				</button>
 				<?php else : ?>
 				<p class="description" style="color: #d63638;">
@@ -258,20 +263,6 @@ class Attachment_Meta_Box {
 			<span class="spinner is-active"></span>
 			<p class="optipress-loading-text"><?php esc_html_e( 'Converting...', 'optipress' ); ?></p>
 		</div>
-		<?php
-	}
-
-	/**
-	 * Render auto-convert info state
-	 */
-	private function render_auto_convert_info() {
-		?>
-		<p class="description">
-			<?php esc_html_e( 'Auto-convert is enabled. New uploads are automatically optimized.', 'optipress' ); ?>
-		</p>
-		<p class="description">
-			<?php esc_html_e( 'This image will be converted on next upload or via bulk optimization.', 'optipress' ); ?>
-		</p>
 		<?php
 	}
 
