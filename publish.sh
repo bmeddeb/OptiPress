@@ -49,8 +49,10 @@ show_usage() {
     echo "The script will:"
     echo "  1. Update version in optipress.php header"
     echo "  2. Update OPTIPRESS_VERSION constant"
-    echo "  3. Create clean distribution package"
-    echo "  4. Generate OptiPress-[version].zip in ./dist"
+    echo "  3. Update version in package.json"
+    echo "  4. Update Stable tag in readme.txt (WordPress.org requirement)"
+    echo "  5. Create clean distribution package"
+    echo "  6. Generate OptiPress-[version].zip in ./dist"
 }
 
 # Validate inputs
@@ -117,7 +119,19 @@ if [ -f "package.json" ]; then
     fi
 fi
 
-print_success "Version updated to $VERSION in optipress.php and package.json"
+# Step 2.6: Update readme.txt Stable tag (WordPress.org requirement)
+if [ -f "readme.txt" ]; then
+    print_status "Updating readme.txt Stable tag..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' "s/^Stable tag: .*/Stable tag: $VERSION/" readme.txt
+    else
+        # Linux
+        sed -i "s/^Stable tag: .*/Stable tag: $VERSION/" readme.txt
+    fi
+fi
+
+print_success "Version updated to $VERSION in optipress.php, package.json, and readme.txt"
 
 # Step 3: Verify updates
 print_status "Verifying version updates..."
@@ -139,6 +153,15 @@ if [ -f "package.json" ]; then
     PACKAGE_VERSION=$(grep '"version":' package.json | sed 's/.*"version": "\(.*\)".*/\1/')
     if [ "$PACKAGE_VERSION" != "$VERSION" ]; then
         print_error "package.json version update failed. Expected: $VERSION, Got: $PACKAGE_VERSION"
+        exit 1
+    fi
+fi
+
+# Verify readme.txt if it exists
+if [ -f "readme.txt" ]; then
+    README_STABLE_TAG=$(grep "^Stable tag:" readme.txt | sed 's/Stable tag: //')
+    if [ "$README_STABLE_TAG" != "$VERSION" ]; then
+        print_error "readme.txt Stable tag update failed. Expected: $VERSION, Got: $README_STABLE_TAG"
         exit 1
     fi
 fi
