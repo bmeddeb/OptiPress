@@ -88,6 +88,11 @@
 
 					// Reload attachment data in media modal if open
 					reloadAttachmentData(attachmentId);
+
+					// Reload page after 2 seconds to refresh all URLs (including download link)
+					setTimeout(function () {
+						location.reload();
+					}, 2000);
 				} else {
 					var errorMsg =
 						response.data && response.data.message
@@ -136,6 +141,11 @@
 
 					// Reload attachment data
 					reloadAttachmentData(attachmentId);
+
+					// Reload page after 2 seconds to refresh all URLs
+					setTimeout(function () {
+						location.reload();
+					}, 2000);
 				} else {
 					var errorMsg =
 						response.data && response.data.message
@@ -184,6 +194,11 @@
 
 					// Reload attachment data
 					reloadAttachmentData(attachmentId);
+
+					// Reload page after 2 seconds to refresh all URLs
+					setTimeout(function () {
+						location.reload();
+					}, 2000);
 				} else {
 					var errorMsg =
 						response.data && response.data.message

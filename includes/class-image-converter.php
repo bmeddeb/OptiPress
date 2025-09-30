@@ -980,6 +980,12 @@ class Image_Converter {
 		update_post_meta( $attachment_id, '_optipress_bytes_saved', $bytes_saved );
 		update_post_meta( $attachment_id, '_optipress_percent_saved', round( $percent_saved, 2 ) );
 
+		// Update WordPress attachment metadata to refresh cache and URLs
+		wp_update_attachment_metadata( $attachment_id, $metadata );
+
+		// Clear WordPress object cache for this attachment
+		clean_attachment_cache( $attachment_id );
+
 		return true;
 	}
 
@@ -1046,6 +1052,12 @@ class Image_Converter {
 		delete_post_meta( $attachment_id, '_optipress_converted_size' );
 		delete_post_meta( $attachment_id, '_optipress_bytes_saved' );
 		delete_post_meta( $attachment_id, '_optipress_percent_saved' );
+
+		// Update WordPress attachment metadata to refresh cache and URLs
+		wp_update_attachment_metadata( $attachment_id, $metadata );
+
+		// Clear WordPress object cache for this attachment
+		clean_attachment_cache( $attachment_id );
 
 		return true;
 	}
