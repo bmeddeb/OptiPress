@@ -185,7 +185,7 @@ class Admin_Interface {
 			wp_enqueue_script(
 				'optipress-admin',
 				OPTIPRESS_PLUGIN_URL . 'admin/js/admin-settings.js',
-				array( 'jquery' ),
+				array( 'jquery', 'optipress-admin-notices' ),
 				OPTIPRESS_VERSION,
 				true
 			);
@@ -203,7 +203,7 @@ class Admin_Interface {
 			wp_enqueue_script(
 				'optipress-batch-processor',
 				OPTIPRESS_PLUGIN_URL . 'admin/js/batch-processor.js',
-				array( 'jquery', 'optipress-admin', 'wp-data' ),
+				array( 'jquery', 'optipress-admin', 'optipress-admin-notices', 'wp-data' ),
 				OPTIPRESS_VERSION,
 				true
 			);

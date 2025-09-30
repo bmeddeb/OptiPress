@@ -113,18 +113,12 @@
 			});
 			}.bind(this);
 
-			if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
-				OptipressNotices.createConfirm(optipressAdmin.i18n.confirmBatch)
-					.then(function(confirmed){
-						if ( confirmed ) {
-							proceedWithBatch();
-						}
-					});
-			} else {
-				if ( confirm(optipressAdmin.i18n.confirmBatch) ) {
+			// Use non-blocking confirmation helper (helper is enqueued as a dependency)
+			OptipressNotices.createConfirm(optipressAdmin.i18n.confirmBatch).then(function(confirmed){
+				if ( confirmed ) {
 					proceedWithBatch();
 				}
-			}
+			});
 		},
 
 		/**
@@ -150,18 +144,11 @@
 			});
 			}.bind(this);
 
-			if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
-				OptipressNotices.createConfirm(optipressAdmin.i18n.confirmRevert)
-					.then(function(confirmed){
-						if ( confirmed ) {
-							proceedWithRevert();
-						}
-					});
-			} else {
-				if ( confirm(optipressAdmin.i18n.confirmRevert) ) {
+			OptipressNotices.createConfirm(optipressAdmin.i18n.confirmRevert).then(function(confirmed){
+				if ( confirmed ) {
 					proceedWithRevert();
 				}
-			}
+			});
 		},
 
 		/**
@@ -186,18 +173,11 @@
 			});
 			}.bind(this);
 
-			if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
-				OptipressNotices.createConfirm(optipressAdmin.i18n.confirmSvgBatch)
-					.then(function(confirmed){
-						if ( confirmed ) {
-							proceedWithSvg();
-						}
-					});
-			} else {
-				if ( confirm(optipressAdmin.i18n.confirmSvgBatch) ) {
+			OptipressNotices.createConfirm(optipressAdmin.i18n.confirmSvgBatch).then(function(confirmed){
+				if ( confirmed ) {
 					proceedWithSvg();
 				}
-			}
+			});
 		},
 
 		/**

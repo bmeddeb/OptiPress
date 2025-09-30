@@ -110,18 +110,12 @@
 					'Are you sure you want to disable this option?';
 
 				// Use OptipressNotices.createConfirm if available (non-blocking), fallback to window.confirm
-				if ( typeof OptipressNotices !== 'undefined' && OptipressNotices.createConfirm ) {
-					OptipressNotices.createConfirm(message, { confirmLabel: 'Disable', cancelLabel: 'Keep Originals' })
-						.then(function(confirmed) {
-							if (!confirmed) {
-								$("input[name=\"optipress_options[keep_originals]\"]").prop('checked', true);
-							}
-						});
-				} else {
-					if (!window.confirm(message)) {
-						$("input[name=\"optipress_options[keep_originals]\"]").prop('checked', true);
-					}
-				}
+				OptipressNotices.createConfirm(message, { confirmLabel: 'Disable', cancelLabel: 'Keep Originals' })
+					.then(function(confirmed) {
+						if (!confirmed) {
+							$("input[name=\"optipress_options[keep_originals]\"]").prop('checked', true);
+						}
+					});
 			}
 		});
 	}
