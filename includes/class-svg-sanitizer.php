@@ -232,9 +232,9 @@ class SVG_Sanitizer {
 	 * Uses enshrined/svg-sanitize with additional hardening.
 	 *
 	 * @param string $svg_content Raw SVG content.
-	 * @return string|false Sanitized SVG or false on failure.
+	 * @return string|WP_Error Sanitized SVG or WP_Error on failure.
 	 */
-	private function sanitize_svg_content( $svg_content ) {
+	public function sanitize_svg_content( $svg_content ) {
 		// Set safe libxml flags to prevent XXE attacks
 		$prev_use_errors = libxml_use_internal_errors( true );
 		$prev_entity_loader = libxml_disable_entity_loader( true );
