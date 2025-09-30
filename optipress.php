@@ -3,7 +3,7 @@
  * Plugin Name: OptiPress
  * Plugin URI: https://optipress.meddeb.me
  * Description: Image optimization and safe SVG handling for WordPress. Converts images to WebP/AVIF and enables secure SVG uploads.
- * Version:     0.4.5
+ * Version:     0.4.6
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Ben Meddeb
@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'OPTIPRESS_VERSION', '0.4.5' );
+define( 'OPTIPRESS_VERSION', '0.4.6' );
 define( 'OPTIPRESS_PLUGIN_FILE', __FILE__ );
 define( 'OPTIPRESS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPTIPRESS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -25,6 +25,31 @@ define( 'OPTIPRESS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 // Composer autoloader
 if ( file_exists( OPTIPRESS_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once OPTIPRESS_PLUGIN_DIR . 'vendor/autoload.php';
+}
+
+// Plugin Update Checker (GitHub releases)
+if ( file_exists( OPTIPRESS_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php' ) ) {
+	require_once OPTIPRESS_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php';
+
+	use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+	$optipress_update_checker = PucFactory::buildUpdateChecker(
+		'https://github.com/bmeddeb/OptiPress/',
+		__FILE__,
+		'optipress'
+	);
+
+	// Set branch for updates (main branch)
+	$optipress_update_checker->setBranch( 'main' );
+
+	// Enable release assets (downloads .zip files from GitHub releases)
+	$optipress_update_checker->getVcsApi()->enableReleaseAssets();
+
+	// Optional: Private repo authentication (if needed in the future)
+	// Define OPTIPRESS_GITHUB_TOKEN in wp-config.php for private repos
+	if ( defined( 'OPTIPRESS_GITHUB_TOKEN' ) ) {
+		$optipress_update_checker->setAuthentication( OPTIPRESS_GITHUB_TOKEN );
+	}
 }
 
 /**
