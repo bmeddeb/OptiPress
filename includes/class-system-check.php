@@ -221,6 +221,146 @@ class System_Check {
 	}
 
 	/**
+	 * Check JPEG 2000 format support (via OpenJPEG delegate)
+	 *
+	 * Checks if ImageMagick has OpenJPEG delegate for JPEG 2000 formats.
+	 *
+	 * @return array {
+	 *     JPEG 2000 format support information.
+	 *
+	 *     @type bool  $available          Whether Imagick is available.
+	 *     @type array $supported_jp2      Array of supported JP2 formats.
+	 *     @type bool  $has_openjpeg       Whether OpenJPEG delegate is available.
+	 *     @type string $install_command   Installation command for the delegate.
+	 * }
+	 */
+	public function check_jp2_format_support() {
+		if ( ! class_exists( 'Imagick' ) ) {
+			return array(
+				'available'        => false,
+				'supported_jp2'    => array(),
+				'has_openjpeg'     => false,
+				'install_command'  => $this->get_install_command( 'openjpeg' ),
+			);
+		}
+
+		try {
+			$formats = \Imagick::queryFormats();
+
+			// JPEG 2000 formats to check
+			$jp2_formats = array( 'JP2', 'J2K', 'JPX', 'JPM', 'JPF' );
+			$supported_jp2 = array();
+
+			foreach ( $jp2_formats as $format ) {
+				if ( in_array( $format, $formats, true ) ) {
+					$supported_jp2[] = $format;
+				}
+			}
+
+			return array(
+				'available'        => true,
+				'supported_jp2'    => $supported_jp2,
+				'has_openjpeg'     => ! empty( $supported_jp2 ),
+				'install_command'  => $this->get_install_command( 'openjpeg' ),
+			);
+		} catch ( \Exception $e ) {
+			return array(
+				'available'        => false,
+				'supported_jp2'    => array(),
+				'has_openjpeg'     => false,
+				'install_command'  => $this->get_install_command( 'openjpeg' ),
+			);
+		}
+	}
+
+	/**
+	 * Check HEIC/HEIF format support (via libheif delegate)
+	 *
+	 * Checks if ImageMagick has libheif delegate for HEIC/HEIF formats.
+	 *
+	 * @return array {
+	 *     HEIC/HEIF format support information.
+	 *
+	 *     @type bool  $available          Whether Imagick is available.
+	 *     @type array $supported_heif     Array of supported HEIF formats.
+	 *     @type bool  $has_libheif        Whether libheif delegate is available.
+	 *     @type string $install_command   Installation command for the delegate.
+	 * }
+	 */
+	public function check_heif_format_support() {
+		if ( ! class_exists( 'Imagick' ) ) {
+			return array(
+				'available'        => false,
+				'supported_heif'   => array(),
+				'has_libheif'      => false,
+				'install_command'  => $this->get_install_command( 'libheif' ),
+			);
+		}
+
+		try {
+			$formats = \Imagick::queryFormats();
+
+			// HEIF formats to check
+			$heif_formats = array( 'HEIC', 'HEIF' );
+			$supported_heif = array();
+
+			foreach ( $heif_formats as $format ) {
+				if ( in_array( $format, $formats, true ) ) {
+					$supported_heif[] = $format;
+				}
+			}
+
+			return array(
+				'available'        => true,
+				'supported_heif'   => $supported_heif,
+				'has_libheif'      => ! empty( $supported_heif ),
+				'install_command'  => $this->get_install_command( 'libheif' ),
+			);
+		} catch ( \Exception $e ) {
+			return array(
+				'available'        => false,
+				'supported_heif'   => array(),
+				'has_libheif'      => false,
+				'install_command'  => $this->get_install_command( 'libheif' ),
+			);
+		}
+	}
+
+	/**
+	 * Get installation command for a delegate based on OS
+	 *
+	 * @param string $delegate Delegate name (openjpeg, libheif, libraw).
+	 * @return string Installation command.
+	 */
+	private function get_install_command( $delegate ) {
+		$os = PHP_OS_FAMILY;
+
+		$commands = array(
+			'openjpeg' => array(
+				'Linux'   => 'sudo apt-get install libopenjp2-7-dev imagemagick',
+				'Darwin'  => 'brew install openjpeg imagemagick',
+				'Windows' => 'Install ImageMagick with OpenJPEG support from imagemagick.org',
+			),
+			'libheif'  => array(
+				'Linux'   => 'sudo apt-get install libheif-dev imagemagick',
+				'Darwin'  => 'brew install libheif imagemagick',
+				'Windows' => 'Install ImageMagick with libheif support from imagemagick.org',
+			),
+			'libraw'   => array(
+				'Linux'   => 'sudo apt-get install libraw-dev imagemagick',
+				'Darwin'  => 'brew install libraw imagemagick',
+				'Windows' => 'Install ImageMagick with libraw support from imagemagick.org',
+			),
+		);
+
+		if ( isset( $commands[ $delegate ][ $os ] ) ) {
+			return $commands[ $delegate ][ $os ];
+		}
+
+		return __( 'Install ImageMagick with appropriate delegates for your system', 'optipress' );
+	}
+
+	/**
 	 * Get all system capabilities
 	 *
 	 * Returns a comprehensive report of available engines and formats.
@@ -233,6 +373,8 @@ class System_Check {
 	 *     @type array  $gd               GD library information.
 	 *     @type array  $imagick          Imagick extension information.
 	 *     @type array  $raw              RAW format support information.
+	 *     @type array  $jp2              JPEG 2000 format support information.
+	 *     @type array  $heif             HEIC/HEIF format support information.
 	 *     @type array  $available_engines Available engines ('gd', 'imagick').
 	 *     @type array  $formats          Format support by engine.
 	 *     @type array  $warnings         Array of warning messages.
@@ -249,6 +391,8 @@ class System_Check {
 		$gd      = $this->check_gd_library();
 		$imagick = $this->check_imagick_extension();
 		$raw     = $this->check_raw_format_support();
+		$jp2     = $this->check_jp2_format_support();
+		$heif    = $this->check_heif_format_support();
 
 		// Determine available engines
 		$available_engines = array();
@@ -317,6 +461,8 @@ class System_Check {
 			'gd'                => $gd,
 			'imagick'           => $imagick,
 			'raw'               => $raw,
+			'jp2'               => $jp2,
+			'heif'              => $heif,
 			'available_engines' => $available_engines,
 			'formats'           => $formats,
 			'warnings'          => $warnings,

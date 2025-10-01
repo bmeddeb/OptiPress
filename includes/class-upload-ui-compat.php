@@ -98,6 +98,43 @@ final class Upload_UI_Compat {
 			$mime_map['psd'] = 'image/vnd.adobe.photoshop';
 		}
 
+		// Ensure JP2 family is present (requires OpenJPEG delegate)
+		$jp2_exts = array( 'jp2', 'j2k', 'jpf', 'jpx', 'jpm' );
+		foreach ( $jp2_exts as $jp2_ext ) {
+			if ( ! in_array( $jp2_ext, $exts, true ) ) {
+				$exts[] = $jp2_ext;
+			}
+		}
+		if ( ! isset( $mime_map['jp2'] ) ) {
+			$mime_map['jp2'] = 'image/jp2';
+		}
+		if ( ! isset( $mime_map['j2k'] ) ) {
+			$mime_map['j2k'] = 'image/jp2';
+		}
+		if ( ! isset( $mime_map['jpf'] ) ) {
+			$mime_map['jpf'] = 'image/jpx';
+		}
+		if ( ! isset( $mime_map['jpx'] ) ) {
+			$mime_map['jpx'] = 'image/jpx';
+		}
+		if ( ! isset( $mime_map['jpm'] ) ) {
+			$mime_map['jpm'] = 'image/jpm';
+		}
+
+		// Ensure HEIC/HEIF is present (requires libheif delegate)
+		if ( ! in_array( 'heic', $exts, true ) ) {
+			$exts[] = 'heic';
+		}
+		if ( ! in_array( 'heif', $exts, true ) ) {
+			$exts[] = 'heif';
+		}
+		if ( ! isset( $mime_map['heic'] ) ) {
+			$mime_map['heic'] = 'image/heic';
+		}
+		if ( ! isset( $mime_map['heif'] ) ) {
+			$mime_map['heif'] = 'image/heif';
+		}
+
 		// Give integrators a way to adjust
 		$exts     = apply_filters( 'optipress_client_allowed_exts', $exts );       // array of 'psd','tif',...
 		$mime_map = apply_filters( 'optipress_client_allowed_mimes', $mime_map );  // ['psd'=>'image/vnd.adobe.photoshop', ...]

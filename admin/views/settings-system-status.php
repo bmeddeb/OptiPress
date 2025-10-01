@@ -233,6 +233,86 @@ $options = get_option( 'optipress_options', array() );
 		</tbody>
 	</table>
 
+	<!-- JPEG 2000 Format Support -->
+	<h3><?php esc_html_e( 'JPEG 2000 Format Support', 'optipress' ); ?></h3>
+	<table class="widefat striped">
+		<tbody>
+			<tr>
+				<td><strong><?php esc_html_e( 'OpenJPEG Delegate', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( $capabilities['jp2']['has_openjpeg'] ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'Available', 'optipress' ); ?></span>
+					<?php else : ?>
+						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'Not Available', 'optipress' ); ?></span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<?php if ( $capabilities['jp2']['available'] && $capabilities['jp2']['has_openjpeg'] ) : ?>
+				<tr>
+					<td><strong><?php esc_html_e( 'Supported JP2 Formats', 'optipress' ); ?></strong></td>
+					<td>
+						<?php if ( ! empty( $capabilities['jp2']['supported_jp2'] ) ) : ?>
+							<?php echo esc_html( implode( ', ', $capabilities['jp2']['supported_jp2'] ) ); ?>
+						<?php else : ?>
+							<?php esc_html_e( 'None detected', 'optipress' ); ?>
+						<?php endif; ?>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<?php if ( ! $capabilities['jp2']['has_openjpeg'] ) : ?>
+				<tr>
+					<td><strong><?php esc_html_e( 'Installation Instructions', 'optipress' ); ?></strong></td>
+					<td>
+						<code><?php echo esc_html( $capabilities['jp2']['install_command'] ); ?></code>
+						<p class="description">
+							<?php esc_html_e( 'Install OpenJPEG delegate to enable JPEG 2000 format support (JP2, J2K, JPX, JPM).', 'optipress' ); ?>
+						</p>
+					</td>
+				</tr>
+			<?php endif; ?>
+		</tbody>
+	</table>
+
+	<!-- HEIC/HEIF Format Support -->
+	<h3><?php esc_html_e( 'HEIC/HEIF Format Support', 'optipress' ); ?></h3>
+	<table class="widefat striped">
+		<tbody>
+			<tr>
+				<td><strong><?php esc_html_e( 'libheif Delegate', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( $capabilities['heif']['has_libheif'] ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'Available', 'optipress' ); ?></span>
+					<?php else : ?>
+						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'Not Available', 'optipress' ); ?></span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<?php if ( $capabilities['heif']['available'] && $capabilities['heif']['has_libheif'] ) : ?>
+				<tr>
+					<td><strong><?php esc_html_e( 'Supported HEIF Formats', 'optipress' ); ?></strong></td>
+					<td>
+						<?php if ( ! empty( $capabilities['heif']['supported_heif'] ) ) : ?>
+							<?php echo esc_html( implode( ', ', $capabilities['heif']['supported_heif'] ) ); ?>
+						<?php else : ?>
+							<?php esc_html_e( 'None detected', 'optipress' ); ?>
+						<?php endif; ?>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<?php if ( ! $capabilities['heif']['has_libheif'] ) : ?>
+				<tr>
+					<td><strong><?php esc_html_e( 'Installation Instructions', 'optipress' ); ?></strong></td>
+					<td>
+						<code><?php echo esc_html( $capabilities['heif']['install_command'] ); ?></code>
+						<p class="description">
+							<?php esc_html_e( 'Install libheif delegate to enable HEIC/HEIF format support (iPhone photos).', 'optipress' ); ?>
+						</p>
+					</td>
+				</tr>
+			<?php endif; ?>
+		</tbody>
+	</table>
+
 	<!-- Format Support Summary -->
 	<h3><?php esc_html_e( 'Format Support Summary', 'optipress' ); ?></h3>
 	<table class="widefat striped">
@@ -272,6 +352,10 @@ $options = get_option( 'optipress_options', array() );
 	<h3><?php esc_html_e( 'Current Configuration', 'optipress' ); ?></h3>
 	<table class="widefat striped">
 		<tbody>
+			<tr>
+				<td><strong><?php esc_html_e( 'OptiPress Version', 'optipress' ); ?></strong></td>
+				<td><?php echo esc_html( defined( 'OPTIPRESS_VERSION' ) ? OPTIPRESS_VERSION : __( 'Unknown', 'optipress' ) ); ?></td>
+			</tr>
 			<tr>
 				<td><strong><?php esc_html_e( 'Selected Engine', 'optipress' ); ?></strong></td>
 				<td><?php echo esc_html( isset( $options['engine'] ) ? strtoupper( $options['engine'] ) : 'AUTO' ); ?></td>

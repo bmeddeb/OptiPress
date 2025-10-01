@@ -67,9 +67,14 @@ final class Advanced_Formats {
 	 */
 	private function advanced_exts() {
 		return array(
-			'tif', 'tiff', 'psd', // widely supported by Imagick
+			// TIFF/PSD (widely supported by Imagick)
+			'tif', 'tiff', 'psd',
 			// RAW formats (support depends on build/delegates, e.g., libraw)
 			'dng', 'arw', 'cr2', 'cr3', 'nef', 'orf', 'rw2', 'raf',
+			// JPEG 2000 family (requires OpenJPEG delegate)
+			'jp2', 'j2k', 'jpf', 'jpx', 'jpm',
+			// HEIF/HEIC (requires libheif delegate)
+			'heic', 'heif',
 		);
 	}
 
