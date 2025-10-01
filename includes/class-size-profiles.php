@@ -65,7 +65,7 @@ final class Size_Profiles {
 			__( 'OptiPress Image Sizes', 'optipress' ),
 			__( 'Image Sizes', 'optipress' ),
 			'manage_options',
-			'optipress-thumbnails',
+			'optipress-image-profiles',
 			array( $this, 'render_page' )
 		);
 	}
@@ -84,7 +84,7 @@ final class Size_Profiles {
 		);
 		add_settings_section(
 			'optipress_size_profiles_section',
-			__( 'Image Size Profiles', 'optipress' ),
+			'',
 			function () {
 				$global_opts = get_option( 'optipress_options', array() );
 				$global_format = isset( $global_opts['format'] ) ? strtoupper( $global_opts['format'] ) : 'WebP';
@@ -95,13 +95,13 @@ final class Size_Profiles {
 					'<strong>' . esc_html( $global_format ) . '</strong>'
 				) . '</p>';
 			},
-			'optipress-thumbnails'
+			'optipress-image-profiles'
 		);
 		add_settings_field(
 			'optipress_size_profiles_field',
-			__( 'Profiles', 'optipress' ),
+			'',
 			array( $this, 'render_profiles_field' ),
-			'optipress-thumbnails',
+			'optipress-image-profiles',
 			'optipress_size_profiles_section'
 		);
 
@@ -118,7 +118,7 @@ final class Size_Profiles {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( 'optipress_page_optipress-thumbnails' !== $hook ) {
+		if ( 'optipress_page_optipress-image-profiles' !== $hook ) {
 			return;
 		}
 
@@ -212,7 +212,7 @@ final class Size_Profiles {
 			<form method="post" action="options.php" id="optipress-size-profiles-form">
 				<?php
 				settings_fields( 'optipress_size_profiles_group' );
-				do_settings_sections( 'optipress-thumbnails' );
+				do_settings_sections( 'optipress-image-profiles' );
 				submit_button( __( 'Save Image Sizes', 'optipress' ) );
 				?>
 			</form>

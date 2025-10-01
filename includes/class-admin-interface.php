@@ -372,7 +372,7 @@ class Admin_Interface {
 				<div class="optipress-card">
 					<h2><?php esc_html_e( 'Image Sizes', 'optipress' ); ?></h2>
 					<p><?php esc_html_e( 'Configure responsive image sizes for different screen sizes and layouts.', 'optipress' ); ?></p>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-thumbnails' ) ); ?>" class="button button-primary">
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-image-profiles' ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Manage Sizes', 'optipress' ); ?>
 					</a>
 				</div>

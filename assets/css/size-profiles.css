@@ -2,6 +2,15 @@
  * OptiPress Size Profiles Styles
  */
 
+/* Remove WordPress Settings API two-column layout */
+#optipress-size-profiles-form .form-table th {
+	display: none;
+}
+
+#optipress-size-profiles-form .form-table td {
+	padding-left: 0;
+}
+
 /* Table Layout */
 #optipress-size-profiles-table {
 	table-layout: auto;
