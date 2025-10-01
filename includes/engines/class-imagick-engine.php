@@ -70,23 +70,75 @@ class Imagick_Engine implements ImageEngineInterface {
 		}
 
 		// Map Imagick format codes to MIME types
-		// Only include common raster image formats
+		// Include all common raster image formats that can be converted
 		$format_map = array(
-			'JPEG' => 'image/jpeg',
-			'JPG'  => 'image/jpeg',
-			'PNG'  => 'image/png',
-			'GIF'  => 'image/gif',
-			'WEBP' => 'image/webp',
-			'BMP'  => 'image/bmp',
-			'TIFF' => 'image/tiff',
-			'TIF'  => 'image/tiff',
-			'AVIF' => 'image/avif',
-			'HEIC' => 'image/heic',
-			'HEIF' => 'image/heif',
-			'ICO'  => 'image/x-icon',
-			'TGA'  => 'image/x-tga',
-			'PSD'  => 'image/vnd.adobe.photoshop',
-			'WEBM' => 'image/webp', // WebM single frame
+			// Standard formats
+			'JPEG'  => 'image/jpeg',
+			'JPG'   => 'image/jpeg',
+			'PNG'   => 'image/png',
+			'GIF'   => 'image/gif',
+			'WEBP'  => 'image/webp',
+			'BMP'   => 'image/bmp',
+			'BMP2'  => 'image/bmp',
+			'BMP3'  => 'image/bmp',
+
+			// TIFF variants
+			'TIFF'  => 'image/tiff',
+			'TIF'   => 'image/tiff',
+			'TIFF64' => 'image/tiff',
+
+			// Modern formats
+			'AVIF'  => 'image/avif',
+			'HEIC'  => 'image/heic',
+			'HEIF'  => 'image/heif',
+
+			// JPEG 2000
+			'JP2'   => 'image/jp2',
+			'JPX'   => 'image/jpx',
+			'JPM'   => 'image/jpm',
+			'J2K'   => 'image/jp2',
+			'J2C'   => 'image/jp2',
+
+			// Professional formats
+			'PSD'   => 'image/vnd.adobe.photoshop',
+			'TGA'   => 'image/x-tga',
+			'TARGA' => 'image/x-targa',
+			'ICO'   => 'image/x-icon',
+			'ICON'  => 'image/vnd.microsoft.icon',
+
+			// Wireless/mobile formats
+			'WBMP'  => 'image/vnd.wap.wbmp',
+
+			// X Window formats
+			'XBM'   => 'image/x-xbitmap',
+			'XPM'   => 'image/x-xpixmap',
+
+			// Portable formats
+			'PPM'   => 'image/x-portable-pixmap',
+			'PGM'   => 'image/x-portable-graymap',
+			'PBM'   => 'image/x-portable-bitmap',
+			'PNM'   => 'image/x-portable-anymap',
+
+			// Camera RAW formats
+			'CR2'   => 'image/x-canon-cr2',
+			'CRW'   => 'image/x-canon-crw',
+			'NEF'   => 'image/x-nikon-nef',
+			'NRW'   => 'image/x-nikon-nef',
+			'ARW'   => 'image/x-sony-arw',
+			'SRF'   => 'image/x-sony-arw',
+			'SR2'   => 'image/x-sony-arw',
+			'DNG'   => 'image/x-adobe-dng',
+			'RAF'   => 'image/x-fuji-raf',
+			'ORF'   => 'image/x-olympus-orf',
+			'RAW'   => 'image/x-panasonic-raw',
+			'RW2'   => 'image/x-panasonic-raw',
+			'PEF'   => 'image/x-pentax-pef',
+			'SRW'   => 'image/x-samsung-srw',
+			'DCR'   => 'image/x-kodak-dcr',
+
+			// Other formats
+			'PCX'   => 'image/x-pcx',
+			'WEBM'  => 'image/webp',  // WebM single frame
 		);
 
 		$supported_mimes = array();
@@ -181,11 +233,16 @@ class Imagick_Engine implements ImageEngineInterface {
 			// Load source image with error handling
 			try {
 				if ( ! $imagick->readImage( $source_path ) ) {
-					error_log( 'OptiPress: Failed to read image: ' . $source_path );
+					error_log( 'OptiPress Imagick: Failed to read image: ' . $source_path );
 					return false;
 				}
 			} catch ( \ImagickException $e ) {
-				error_log( 'OptiPress: ImagickException while reading image: ' . $e->getMessage() );
+				error_log( sprintf(
+					'OptiPress Imagick: Exception reading %s - %s (Code: %d)',
+					basename( $source_path ),
+					$e->getMessage(),
+					$e->getCode()
+				) );
 				$this->cleanup_imagick( $imagick );
 				return false;
 			}

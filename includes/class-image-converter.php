@@ -110,26 +110,53 @@ class Image_Converter {
 	 * @return array Modified metadata.
 	 */
 	public function convert_on_upload( $metadata, $attachment_id ) {
+		// Debug logging
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( sprintf( 'OptiPress: convert_on_upload called for attachment %d', $attachment_id ) );
+			error_log( 'OptiPress: Metadata: ' . print_r( $metadata, true ) );
+		}
+
 		// Check if auto-convert is enabled
 		if ( ! $this->is_auto_convert_enabled() ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'OptiPress: Auto-convert is disabled' );
+			}
 			return $metadata;
 		}
 
 		// Check if this is an image attachment
 		if ( ! wp_attachment_is_image( $attachment_id ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( sprintf( 'OptiPress: Attachment %d is not an image', $attachment_id ) );
+			}
 			return $metadata;
 		}
 
 		// Get the file path
 		$file_path = get_attached_file( $attachment_id );
+		$mime_type = get_post_mime_type( $attachment_id );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( sprintf( 'OptiPress: File path: %s, MIME: %s', $file_path, $mime_type ) );
+		}
 
 		if ( ! $file_path || ! file_exists( $file_path ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( sprintf( 'OptiPress: File not found: %s', $file_path ) );
+			}
 			return $metadata;
 		}
 
-		// Check if file type should be converted (only JPG, PNG)
+		// Check if file type should be converted
 		if ( ! $this->should_convert_file( $file_path ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( sprintf( 'OptiPress: File type not supported for conversion: %s', $mime_type ) );
+			}
 			return $metadata;
+		}
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( sprintf( 'OptiPress: Starting conversion for %s', basename( $file_path ) ) );
 		}
 
 		// Mark as processing immediately (before conversion starts)
@@ -164,7 +191,7 @@ class Image_Converter {
 
 		// Convert all image sizes
 		$converted_sizes = array();
-		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ) {
+		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) && ! empty( $metadata['sizes'] ) ) {
 			$upload_dir = dirname( $file_path );
 
 			foreach ( $metadata['sizes'] as $size_name => $size_data ) {
@@ -183,6 +210,12 @@ class Image_Converter {
 						$converted_sizes[] = $size_name;
 					}
 				}
+			}
+		} else {
+			// No WordPress-generated thumbnails exist
+			// This can happen with formats WordPress doesn't natively support (TIFF, PSD, etc.)
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( sprintf( 'OptiPress: No thumbnail metadata for attachment %d - WordPress may not support this format natively', $attachment_id ) );
 			}
 		}
 

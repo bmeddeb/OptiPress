@@ -259,43 +259,8 @@ class Admin_Interface {
 		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
 		$supported_formats = $registry->get_all_supported_input_formats();
 
-		// Build extension to MIME type map
-		$extension_map = array();
-		foreach ( $supported_formats as $mime ) {
-			switch ( $mime ) {
-				case 'image/jpeg':
-					$extension_map['jpg'] = 'image/jpeg';
-					$extension_map['jpeg'] = 'image/jpeg';
-					break;
-				case 'image/png':
-					$extension_map['png'] = 'image/png';
-					break;
-				case 'image/gif':
-					$extension_map['gif'] = 'image/gif';
-					break;
-				case 'image/webp':
-					$extension_map['webp'] = 'image/webp';
-					break;
-				case 'image/bmp':
-				case 'image/x-ms-bmp':
-				case 'image/x-bmp':
-					$extension_map['bmp'] = 'image/bmp';
-					break;
-				case 'image/tiff':
-					$extension_map['tiff'] = 'image/tiff';
-					$extension_map['tif'] = 'image/tiff';
-					break;
-				case 'image/avif':
-					$extension_map['avif'] = 'image/avif';
-					break;
-				case 'image/heic':
-					$extension_map['heic'] = 'image/heic';
-					break;
-				case 'image/heif':
-					$extension_map['heif'] = 'image/heif';
-					break;
-			}
-		}
+		// Build extension to MIME type map dynamically
+		$extension_map = \OptiPress\MIME_Type_Map::get_extension_to_mime_map( $supported_formats );
 
 			// Localize upload script
 			wp_localize_script(
