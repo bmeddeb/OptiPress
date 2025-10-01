@@ -58,11 +58,11 @@ final class Size_Profiles {
 	 * Add submenu page
 	 */
 	public function add_submenu() {
-		// Add as submenu under Settings > OptiPress
+		// Add as submenu under OptiPress
 		add_submenu_page(
-			'options-general.php',
-			__( 'OptiPress Size Profiles', 'optipress' ),
+			'optipress-settings',
 			__( 'OptiPress Thumbnails', 'optipress' ),
+			__( 'Thumbnails', 'optipress' ),
 			'manage_options',
 			'optipress-thumbnails',
 			array( $this, 'render_page' )
@@ -110,7 +110,7 @@ final class Size_Profiles {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( 'settings_page_optipress-thumbnails' !== $hook ) {
+		if ( 'optipress_page_optipress-thumbnails' !== $hook ) {
 			return;
 		}
 

@@ -65,9 +65,22 @@ class Admin_Interface {
 	 * Add admin menu
 	 */
 	public function add_admin_menu() {
-		add_options_page(
+		// Add top-level OptiPress menu
+		add_menu_page(
 			__( 'OptiPress Settings', 'optipress' ),
 			__( 'OptiPress', 'optipress' ),
+			'manage_options',
+			'optipress-settings',
+			array( $this, 'render_settings_page' ),
+			OPTIPRESS_PLUGIN_URL . 'assets/img/OptiPress-icon.png',
+			65
+		);
+
+		// Add submenu page (same as parent to avoid duplicate)
+		add_submenu_page(
+			'optipress-settings',
+			__( 'OptiPress Settings', 'optipress' ),
+			__( 'Settings', 'optipress' ),
 			'manage_options',
 			'optipress-settings',
 			array( $this, 'render_settings_page' )
@@ -176,7 +189,7 @@ class Admin_Interface {
 	 */
 	public function enqueue_admin_assets( $hook ) {
 		// Settings page assets
-		if ( 'settings_page_optipress-settings' === $hook ) {
+		if ( 'toplevel_page_optipress-settings' === $hook ) {
 			// CSS
 			wp_enqueue_style(
 				'optipress-admin',
