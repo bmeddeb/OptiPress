@@ -285,8 +285,8 @@ final class Size_Profiles {
 	 */
 	public function render_profiles_field() {
 		$rows = get_option( self::OPTION, $this->default_profiles() );
-		echo '<table class="widefat fixed striped" id="optipress-size-profiles-table">';
-		echo '<thead><tr><th>' . esc_html__( 'Name', 'optipress' ) . '</th><th>' . esc_html__( 'Width', 'optipress' ) . '</th><th>' . esc_html__( 'Height', 'optipress' ) . '</th><th>' . esc_html__( 'Crop', 'optipress' ) . '</th><th>' . esc_html__( 'Format', 'optipress' ) . '</th><th></th></tr></thead>';
+		echo '<table class="widefat striped" id="optipress-size-profiles-table">';
+		echo '<thead><tr><th>' . esc_html__( 'Name', 'optipress' ) . '</th><th>' . esc_html__( 'Width', 'optipress' ) . '</th><th>' . esc_html__( 'Height', 'optipress' ) . '</th><th>' . esc_html__( 'Crop', 'optipress' ) . '</th><th>' . esc_html__( 'Format', 'optipress' ) . '</th><th>' . esc_html__( 'Actions', 'optipress' ) . '</th></tr></thead>';
 		echo '<tbody id="optipress-size-profiles-body">';
 		foreach ( $rows as $i => $r ) {
 			// Ensure old rows get default 'inherit' on first render
@@ -337,11 +337,11 @@ final class Size_Profiles {
 			$sel = ( $format === $val ) ? 'selected' : '';
 			$html .= '<option value="' . esc_attr( $val ) . '" ' . $sel . '>' . esc_html( $label ) . '</option>';
 		}
-		$html .= '</select></td>';
-		$html .= '<td><button type="button" class="button-link delete-size">' . esc_html__( 'Delete', 'optipress' ) . '</button>';
+		$html .= '</select>';
 		// Live hint (prefilled from PHP for no-JS)
 		$html .= '<div class="optipress-size-hint" aria-live="polite">' . esc_html( $hint_text ) . '</div>';
 		$html .= '</td>';
+		$html .= '<td class="optipress-actions-cell"><button type="button" class="button button-small button-link-delete delete-size">' . esc_html__( 'Delete', 'optipress' ) . '</button></td>';
 		$html .= '</tr>';
 		return $html;
 	}

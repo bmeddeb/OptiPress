@@ -1,25 +1,115 @@
 /**
  * OptiPress Size Profiles Styles
  */
+
+/* Table Layout */
+#optipress-size-profiles-table {
+	table-layout: auto;
+	width: 100%;
+	max-width: 100%;
+}
+
+#optipress-size-profiles-table th,
+#optipress-size-profiles-table td {
+	padding: 8px 10px;
+	vertical-align: top;
+}
+
+/* Column Widths */
+#optipress-size-profiles-table th:nth-child(1),
+#optipress-size-profiles-table td:nth-child(1) { width: 140px; } /* Name */
+
+#optipress-size-profiles-table th:nth-child(2),
+#optipress-size-profiles-table td:nth-child(2) { width: 90px; } /* Width */
+
+#optipress-size-profiles-table th:nth-child(3),
+#optipress-size-profiles-table td:nth-child(3) { width: 90px; } /* Height */
+
+#optipress-size-profiles-table th:nth-child(4),
+#optipress-size-profiles-table td:nth-child(4) { width: 80px; } /* Crop */
+
+#optipress-size-profiles-table th:nth-child(5),
+#optipress-size-profiles-table td:nth-child(5) { width: auto; } /* Format + Hint */
+
+#optipress-size-profiles-table th:nth-child(6),
+#optipress-size-profiles-table td:nth-child(6) { width: 80px; text-align: center; } /* Actions */
+
+/* Form Inputs */
 #optipress-size-profiles-table input[type="text"] {
-	width: 140px;
+	width: 100%;
+	max-width: 130px;
 }
 
 #optipress-size-profiles-table input[type="number"] {
-	width: 90px;
+	width: 100%;
+	max-width: 75px;
 }
 
 #optipress-size-profiles-table select {
-	width: 110px;
+	width: 100%;
+	max-width: 110px;
+	margin-bottom: 4px;
+}
+
+#optipress-size-profiles-table input[type="checkbox"] {
+	margin: 0 4px 0 0;
+}
+
+#optipress-size-profiles-table label {
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+}
+
+/* Delete Button */
+.optipress-actions-cell {
+	text-align: center;
+	white-space: nowrap;
 }
 
 #optipress-size-profiles-table .delete-size {
 	color: #b32d2e;
+	border-color: #b32d2e;
+	white-space: nowrap;
 }
 
+#optipress-size-profiles-table .delete-size:hover {
+	color: #fff;
+	background: #b32d2e;
+	border-color: #b32d2e;
+}
+
+/* Hint Text */
 .optipress-size-hint {
 	margin-top: 6px;
-	color: #666;
+	color: #646970;
 	font-size: 12px;
-	line-height: 1.35;
+	line-height: 1.4;
+	font-style: italic;
+}
+
+/* Responsive */
+@media screen and (max-width: 1200px) {
+	#optipress-size-profiles-table {
+		display: block;
+		overflow-x: auto;
+		white-space: nowrap;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	#optipress-size-profiles-table th,
+	#optipress-size-profiles-table td {
+		padding: 6px 8px;
+	}
+
+	#optipress-size-profiles-table input[type="text"],
+	#optipress-size-profiles-table input[type="number"],
+	#optipress-size-profiles-table select {
+		font-size: 14px;
+	}
+
+	.optipress-size-hint {
+		font-size: 11px;
+	}
 }
