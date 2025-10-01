@@ -162,43 +162,102 @@ final class Thumbnailer {
 				$im->setImageFormat( $target_ext );
 				$im->setImageCompressionQuality( $quality );
 
-				$orig_w = $im->getImageWidth();
-				$orig_h = $im->getImageHeight();
+				$orig_w = (int) $im->getImageWidth();
+				$orig_h = (int) $im->getImageHeight();
 
-				if ( $crop && $w > 0 && $h > 0 ) {
-					// Cover-like crop: scale to fill, then center-crop
-					$ratio_src = $orig_w / max( 1, $orig_h );
-					$ratio_tgt = $w / max( 1, $h );
+				if ( $orig_w <= 0 || $orig_h <= 0 ) {
+					throw new \RuntimeException( 'Source image has invalid geometry: ' . $orig_w . 'x' . $orig_h );
+				}
 
-					if ( $ratio_src > $ratio_tgt ) {
-						// wider than target: fit height, then crop width
-						$new_h = $h;
-						$new_w = (int) round( $h * $ratio_src );
-					} else {
-						// taller than target: fit width, then crop height
-						$new_w = $w;
-						$new_h = (int) round( $w / max( 1e-6, $ratio_src ) );
+				/**
+				 * Compute positive target dimensions.
+				 * Returns [$resize_w, $resize_h, $crop_x, $crop_y, $crop_w, $crop_h]
+				 * If no crop: crop_x/y are 0 and crop_w/h equal resize_w/h.
+				 */
+				$calc = function ( $ow, $oh, $tw, $th, $do_crop ) {
+					if ( $tw <= 0 && $th <= 0 ) {
+						// No-op; caller will skip
+						return array( 0, 0, 0, 0, 0, 0 );
 					}
-					$im->resizeImage( $new_w, $new_h, \Imagick::FILTER_LANCZOS, 1 );
 
-					$x = max( 0, (int) floor( ( $new_w - $w ) / 2 ) );
-					$y = max( 0, (int) floor( ( $new_h - $h ) / 2 ) );
-					$im->cropImage( $w, $h, $x, $y );
-				} else {
-					// Contain-like resize, preserve aspect ratio
-					if ( $w > 0 && $h > 0 ) {
-						$im->thumbnailImage( $w, $h, true, true );
-					} elseif ( $w > 0 ) {
-						$im->thumbnailImage( $w, 0, true );
-					} else {
-						$im->thumbnailImage( 0, $h, true );
+					if ( $do_crop && $tw > 0 && $th > 0 ) {
+						// Cover: scale up to fill, then center-crop tw×th
+						$scale = max( $tw / $ow, $th / $oh );
+						$rw = max( 1, (int) ceil( $ow * $scale ) );
+						$rh = max( 1, (int) ceil( $oh * $scale ) );
+						// center crop box
+						$cx = max( 0, (int) floor( ( $rw - $tw ) / 2 ) );
+						$cy = max( 0, (int) floor( ( $rh - $th ) / 2 ) );
+						return array( $rw, $rh, $cx, $cy, $tw, $th );
 					}
+
+					if ( $tw > 0 && $th > 0 ) {
+						// Contain: fit inside box, keep aspect
+						$scale = min( $tw / $ow, $th / $oh );
+						$rw = max( 1, (int) floor( $ow * $scale ) );
+						$rh = max( 1, (int) floor( $oh * $scale ) );
+						return array( $rw, $rh, 0, 0, $rw, $rh );
+					}
+
+					if ( $tw > 0 ) {
+						// Width-limited
+						$scale = $tw / $ow;
+						$rw = max( 1, $tw );
+						$rh = max( 1, (int) round( $oh * $scale ) );
+						return array( $rw, $rh, 0, 0, $rw, $rh );
+					}
+
+					// Height-limited
+					$scale = $th / $oh;
+					$rh = max( 1, $th );
+					$rw = max( 1, (int) round( $ow * $scale ) );
+					return array( $rw, $rh, 0, 0, $rw, $rh );
+				};
+
+				list( $rw, $rh, $cx, $cy, $cw, $ch ) = $calc( $orig_w, $orig_h, $w, $h, $crop );
+
+				// Skip if nothing to do (both targets zero)
+				if ( $rw <= 0 || $rh <= 0 ) {
+					throw new \RuntimeException( 'Requested no-op resize (both width and height are zero).' );
+				}
+
+				// Debug logging (optional but helpful)
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					error_log(
+						sprintf(
+							'[OptiPress Thumbnailer] %s: src=%dx%d -> resize=%dx%d crop=%s box=%dx%d@%d,%d fmt=%s',
+							$name,
+							$orig_w,
+							$orig_h,
+							$rw,
+							$rh,
+							$crop ? 'yes' : 'no',
+							$cw,
+							$ch,
+							$cx,
+							$cy,
+							$target_ext
+						)
+					);
+				}
+
+				// Resize with positive integers only
+				$im->resizeImage( $rw, $rh, \Imagick::FILTER_LANCZOS, 1 );
+
+				// Crop if requested (cover path)
+				if ( $crop && $cw > 0 && $ch > 0 && ( $rw !== $cw || $rh !== $ch ) ) {
+					// For transparent formats, keep alpha background clean
+					if ( in_array( $target_ext, array( 'webp', 'avif', 'png' ), true ) ) {
+						$im->setImageBackgroundColor( 'transparent' );
+					}
+					$im->cropImage( $cw, $ch, max( 0, $cx ), max( 0, $cy ) );
+					$im->setImagePage( 0, 0, 0, 0 ); // reset canvas
 				}
 
 				$im->stripImage(); // drop metadata in thumbs
 				$im->writeImage( $dest_abs );
-				$width  = $im->getImageWidth();
-				$height = $im->getImageHeight();
+				$width  = (int) $im->getImageWidth();
+				$height = (int) $im->getImageHeight();
 				$im->clear();
 				$im->destroy();
 
