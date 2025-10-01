@@ -3,7 +3,7 @@
  * Plugin Name: OptiPress
  * Plugin URI: https://optipress.meddeb.me
  * Description: Image optimization and safe SVG handling for WordPress. Converts images to WebP/AVIF and enables secure SVG uploads.
- * Version:     0.5.5
+ * Version:     0.5.6
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Ben Meddeb
@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'OPTIPRESS_VERSION', '0.5.5' );
+define( 'OPTIPRESS_VERSION', '0.5.6' );
 define( 'OPTIPRESS_PLUGIN_FILE', __FILE__ );
 define( 'OPTIPRESS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPTIPRESS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -106,6 +106,7 @@ function optipress_load_files() {
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-system-check.php';
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-mime-type-map.php';
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-advanced-formats.php';
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-upload-ui-compat.php';
 
 	// Image conversion engines
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/engines/interface-image-engine.php';
@@ -161,6 +162,9 @@ function optipress_init() {
 	// Initialize Advanced Formats (TIFF/PSD/RAW previews)
 	\OptiPress\Advanced_Formats::get_instance();
 
+	// Initialize Upload UI Compatibility
+	\OptiPress\Upload_UI_Compat::get_instance();
+
 	// Initialize Content Filter (front-end only)
 	if ( ! is_admin() ) {
 		\OptiPress\Content_Filter::get_instance();
@@ -180,9 +184,6 @@ function optipress_init() {
 	// Allow supported image formats for upload
 	add_filter( 'upload_mimes', 'optipress_allow_supported_mimes' );
 	add_filter( 'wp_check_filetype_and_ext', 'optipress_fix_mime_type_validation', 10, 4 );
-
-	// Fix JavaScript plupload settings to allow our formats
-	add_filter( 'plupload_default_settings', 'optipress_fix_plupload_mime_types' );
 }
 add_action( 'plugins_loaded', 'optipress_init' );
 
@@ -256,66 +257,4 @@ function optipress_fix_mime_type_validation( $file_data, $file, $filename, $mime
 	}
 
 	return $file_data;
-}
-
-/**
- * Fix plupload JavaScript MIME types for client-side validation
- *
- * WordPress's media uploader uses plupload which validates file types in JavaScript
- * BEFORE sending to server. This causes immediate rejection of PSD, TIFF, JP2, etc.
- * We need to add our supported MIME types to the plupload settings.
- *
- * @param array $plupload_settings Plupload settings.
- * @return array Modified settings.
- */
-function optipress_fix_plupload_mime_types( $plupload_settings ) {
-	// Get supported formats
-	$registry = \OptiPress\Engines\Engine_Registry::get_instance();
-	$supported_formats = $registry->get_all_supported_input_formats();
-
-	// Get MIME to extension map
-	$mime_map = \OptiPress\MIME_Type_Map::get_upload_mimes_for_supported( $supported_formats );
-
-	// Build extension list for plupload
-	$extensions = array();
-	$mime_types = array();
-
-	foreach ( $mime_map as $ext => $mime ) {
-		// Split pipe-separated extensions (e.g., "tiff|tif")
-		$ext_parts = explode( '|', $ext );
-		$extensions = array_merge( $extensions, $ext_parts );
-
-		// Add MIME type
-		if ( ! in_array( $mime, $mime_types, true ) ) {
-			$mime_types[] = $mime;
-		}
-	}
-
-	// Update plupload filters
-	if ( ! isset( $plupload_settings['filters'] ) ) {
-		$plupload_settings['filters'] = array();
-	}
-
-	if ( ! isset( $plupload_settings['filters']['mime_types'] ) ) {
-		$plupload_settings['filters']['mime_types'] = array();
-	}
-
-	// Add OptiPress formats to allowed list
-	$plupload_settings['filters']['mime_types'][] = array(
-		'title'      => __( 'OptiPress Supported Images', 'optipress' ),
-		'extensions' => implode( ',', array_unique( $extensions ) ),
-	);
-
-	// Ensure max_file_size is set (prevents undefined warnings in some WP versions)
-	if ( ! isset( $plupload_settings['filters']['max_file_size'] ) ) {
-		$plupload_settings['filters']['max_file_size'] = '0b';
-	}
-
-	// Debug logging
-	if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-		error_log( 'OptiPress: Plupload extensions being allowed: ' . implode( ',', array_unique( $extensions ) ) );
-		error_log( 'OptiPress: Plupload MIME types: ' . implode( ',', $mime_types ) );
-	}
-
-	return $plupload_settings;
 }
