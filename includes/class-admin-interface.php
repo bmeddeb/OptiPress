@@ -26,11 +26,11 @@ class Admin_Interface {
 	private static $instance = null;
 
 	/**
-	 * Current active tab
+	 * Current page
 	 *
 	 * @var string
 	 */
-	private $active_tab = 'optimization';
+	private $current_page = '';
 
 	/**
 	 * Get singleton instance
@@ -65,25 +65,45 @@ class Admin_Interface {
 	 * Add admin menu
 	 */
 	public function add_admin_menu() {
-		// Add top-level OptiPress menu
+		// Add top-level OptiPress menu (Image Optimization as first page)
 		add_menu_page(
-			__( 'OptiPress Settings', 'optipress' ),
+			__( 'OptiPress - Image Optimization', 'optipress' ),
 			__( 'OptiPress', 'optipress' ),
 			'manage_options',
-			'optipress-settings',
-			array( $this, 'render_settings_page' ),
+			'optipress-optimization',
+			array( $this, 'render_optimization_page' ),
 			OPTIPRESS_PLUGIN_URL . 'assets/img/OptiPress-icon.png',
 			65
 		);
 
-		// Add submenu page (same as parent to avoid duplicate)
+		// Image Optimization submenu (same as parent to rename it)
 		add_submenu_page(
-			'optipress-settings',
-			__( 'OptiPress Settings', 'optipress' ),
-			__( 'Settings', 'optipress' ),
+			'optipress-optimization',
+			__( 'Image Optimization', 'optipress' ),
+			__( 'Image Optimization', 'optipress' ),
 			'manage_options',
-			'optipress-settings',
-			array( $this, 'render_settings_page' )
+			'optipress-optimization',
+			array( $this, 'render_optimization_page' )
+		);
+
+		// SVG Support submenu
+		add_submenu_page(
+			'optipress-optimization',
+			__( 'SVG Support', 'optipress' ),
+			__( 'SVG Support', 'optipress' ),
+			'manage_options',
+			'optipress-svg',
+			array( $this, 'render_svg_page' )
+		);
+
+		// System Status submenu
+		add_submenu_page(
+			'optipress-optimization',
+			__( 'System Status', 'optipress' ),
+			__( 'System Status', 'optipress' ),
+			'manage_options',
+			'optipress-status',
+			array( $this, 'render_status_page' )
 		);
 	}
 
@@ -146,28 +166,28 @@ class Admin_Interface {
 		}
 
 		// Boolean options - these are tricky because unchecked checkboxes don't send any value
-		// We need to detect if we're on the tab that contains these fields
-		// Optimization tab fields
-		if ( isset( $input['auto_convert'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+		// We need to detect which page we're on to know which fields to update
+		// Optimization page fields
+		if ( isset( $input['auto_convert'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-optimization' ) !== false ) ) {
 			$sanitized['auto_convert'] = isset( $input['auto_convert'] ) && $input['auto_convert'];
 		}
-		if ( isset( $input['keep_originals'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+		if ( isset( $input['keep_originals'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-optimization' ) !== false ) ) {
 			$sanitized['keep_originals'] = isset( $input['keep_originals'] ) && $input['keep_originals'];
 		}
 
-		// SVG tab fields
-		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=svg' ) !== false ) ) {
+		// SVG page fields
+		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-svg' ) !== false ) ) {
 			$sanitized['svg_enabled'] = isset( $input['svg_enabled'] ) && $input['svg_enabled'];
 		}
-		if ( isset( $input['svg_preview_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=svg' ) !== false ) ) {
+		if ( isset( $input['svg_preview_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-svg' ) !== false ) ) {
 			$sanitized['svg_preview_enabled'] = isset( $input['svg_preview_enabled'] ) && $input['svg_preview_enabled'];
 		}
 
-		// Front-end delivery options (optimization tab)
-		if ( isset( $input['enable_content_filter'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+		// Front-end delivery options (optimization page)
+		if ( isset( $input['enable_content_filter'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-optimization' ) !== false ) ) {
 			$sanitized['enable_content_filter'] = isset( $input['enable_content_filter'] ) && $input['enable_content_filter'];
 		}
-		if ( isset( $input['use_picture_element'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'tab=optimization' ) !== false ) ) {
+		if ( isset( $input['use_picture_element'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-optimization' ) !== false ) ) {
 			$sanitized['use_picture_element'] = isset( $input['use_picture_element'] ) && $input['use_picture_element'];
 		}
 
@@ -188,8 +208,14 @@ class Admin_Interface {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_admin_assets( $hook ) {
-		// Settings page assets
-		if ( 'toplevel_page_optipress-settings' === $hook ) {
+		// Settings page assets (all OptiPress admin pages)
+		$optipress_pages = array(
+			'toplevel_page_optipress-optimization',
+			'optipress_page_optipress-svg',
+			'optipress_page_optipress-status',
+		);
+
+		if ( in_array( $hook, $optipress_pages, true ) ) {
 			// CSS
 			wp_enqueue_style(
 				'optipress-admin',
@@ -311,16 +337,13 @@ class Admin_Interface {
 	}
 
 	/**
-	 * Render settings page
+	 * Render optimization page
 	 */
-	public function render_settings_page() {
+	public function render_optimization_page() {
 		// Check user capabilities
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'optipress' ) );
 		}
-
-		// Get current tab
-		$this->active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'optimization';
 
 		// Get current options
 		$options = get_option( 'optipress_options', array() );
@@ -331,42 +354,62 @@ class Admin_Interface {
 
 			<?php settings_errors( 'optipress_messages' ); ?>
 
-			<h2 class="nav-tab-wrapper">
-				<a href="?page=optipress-settings&tab=optimization" class="nav-tab <?php echo 'optimization' === $this->active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'Image Optimization', 'optipress' ); ?>
-				</a>
-				<a href="?page=optipress-settings&tab=svg" class="nav-tab <?php echo 'svg' === $this->active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'SVG Support', 'optipress' ); ?>
-				</a>
-				<a href="?page=optipress-settings&tab=status" class="nav-tab <?php echo 'status' === $this->active_tab ? 'nav-tab-active' : ''; ?>">
-					<?php esc_html_e( 'System Status', 'optipress' ); ?>
-				</a>
-			</h2>
+			<form method="post" action="options.php">
+				<?php
+				settings_fields( 'optipress_options' );
+				$this->render_optimization_tab( $options );
+				submit_button();
+				?>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render SVG page
+	 */
+	public function render_svg_page() {
+		// Check user capabilities
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'optipress' ) );
+		}
+
+		// Get current options
+		$options = get_option( 'optipress_options', array() );
+
+		?>
+		<div class="wrap optipress-settings">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+			<?php settings_errors( 'optipress_messages' ); ?>
 
 			<form method="post" action="options.php">
 				<?php
 				settings_fields( 'optipress_options' );
-
-				switch ( $this->active_tab ) {
-					case 'optimization':
-						$this->render_optimization_tab( $options );
-						break;
-
-					case 'svg':
-						$this->render_svg_tab( $options );
-						break;
-
-					case 'status':
-						$this->render_status_tab();
-						break;
-				}
-
-				// Don't show submit button on status tab
-				if ( 'status' !== $this->active_tab ) {
-					submit_button();
-				}
+				$this->render_svg_tab( $options );
+				submit_button();
 				?>
 			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render status page
+	 */
+	public function render_status_page() {
+		// Check user capabilities
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'optipress' ) );
+		}
+
+		?>
+		<div class="wrap optipress-settings">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+			<?php settings_errors( 'optipress_messages' ); ?>
+
+			<?php $this->render_status_tab(); ?>
 		</div>
 		<?php
 	}
