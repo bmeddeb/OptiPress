@@ -1,0 +1,14 @@
+/**
+ * OptiPress Size Profiles Styles
+ */
+#optipress-size-profiles-table input[type="text"] {
+	width: 160px;
+}
+
+#optipress-size-profiles-table input[type="number"] {
+	width: 100px;
+}
+
+#optipress-size-profiles-table .delete-size {
+	color: #b32d2e;
+}

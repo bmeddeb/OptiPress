@@ -135,6 +135,9 @@ function optipress_load_files() {
 	// Attachment preview panel
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-attachment-preview-panel.php';
 
+	// Size Profiles
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-size-profiles.php';
+
 	// Thumbnailer
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-thumbnailer.php';
 
@@ -170,6 +173,9 @@ function optipress_init() {
 
 	// Initialize Advanced Formats (TIFF/PSD/RAW previews)
 	\OptiPress\Advanced_Formats::get_instance();
+
+	// Initialize Size Profiles (thumbnail size management)
+	\OptiPress\Size_Profiles::get_instance();
 
 	// Initialize Thumbnailer (custom thumbnail generation)
 	\OptiPress\Thumbnailer::get_instance();
