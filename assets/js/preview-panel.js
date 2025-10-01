@@ -8,8 +8,6 @@ jQuery(function ($) {
   const $thumbsBtn = $('#optipress-regenerate-thumbnails');
   const $status = $('#optipress-rebuild-status');
 
-  if (!$previewBtn.length && !$thumbsBtn.length) return;
-
   // Rebuild Preview button
   if ($previewBtn.length) {
     $previewBtn.on('click', function (e) {
@@ -77,4 +75,74 @@ jQuery(function ($) {
       });
     });
   }
+
+  // Row action links - Rebuild Preview
+  $(document).on('click', '.optipress-rebuild-link', function (e) {
+    e.preventDefault();
+    const $link = $(this);
+    const id = $link.data('id');
+    const nonce = $link.data('nonce');
+
+    if (!confirm('Rebuild preview from original file? This will regenerate the preview and all thumbnails.')) {
+      return;
+    }
+
+    $link.text('Rebuilding...');
+
+    $.post(OptiPressPreview.ajax, {
+      action: 'optipress_rebuild_preview',
+      _ajax_nonce: nonce,
+      attachment_id: id
+    })
+    .done(function (res) {
+      if (res && res.success) {
+        $link.text('Rebuild Preview');
+        alert(res.data.message);
+        location.reload(); // Reload to show updated image
+      } else {
+        $link.text('Rebuild Preview');
+        alert((res && res.data && res.data.message) || 'Failed.');
+      }
+    })
+    .fail(function (xhr) {
+      const msg = (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) || 'Error';
+      $link.text('Rebuild Preview');
+      alert(msg);
+    });
+  });
+
+  // Row action links - Regenerate Thumbnails
+  $(document).on('click', '.optipress-regenerate-link', function (e) {
+    e.preventDefault();
+    const $link = $(this);
+    const id = $link.data('id');
+    const nonce = $link.data('nonce');
+
+    if (!confirm('Regenerate all thumbnails for this image?')) {
+      return;
+    }
+
+    $link.text('Regenerating...');
+
+    $.post(OptiPressPreview.ajax, {
+      action: 'optipress_regenerate_thumbnails',
+      _ajax_nonce: nonce,
+      attachment_id: id
+    })
+    .done(function (res) {
+      if (res && res.success) {
+        $link.text('Regenerate Thumbnails');
+        alert(res.data.message);
+        location.reload(); // Reload to show updated thumbnails
+      } else {
+        $link.text('Regenerate Thumbnails');
+        alert((res && res.data && res.data.message) || 'Failed.');
+      }
+    })
+    .fail(function (xhr) {
+      const msg = (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) || 'Error';
+      $link.text('Regenerate Thumbnails');
+      alert(msg);
+    });
+  });
 });

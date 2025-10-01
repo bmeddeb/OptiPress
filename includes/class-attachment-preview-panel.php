@@ -71,8 +71,13 @@ final class Attachment_Preview_Panel {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_admin_assets( $hook ) {
-		// Only on attachment edit screen
-		if ( 'post.php' !== $hook || 'attachment' !== get_post_type( get_the_ID() ?: 0 ) ) {
+		// On attachment edit screen
+		$is_attachment_edit = ( 'post.php' === $hook && 'attachment' === get_post_type( get_the_ID() ?: 0 ) );
+
+		// On media library list screen
+		$is_media_library = ( 'upload.php' === $hook );
+
+		if ( ! $is_attachment_edit && ! $is_media_library ) {
 			return;
 		}
 
@@ -93,12 +98,14 @@ final class Attachment_Preview_Panel {
 			)
 		);
 
-		wp_enqueue_style(
-			'optipress-preview-panel-css',
-			plugins_url( 'assets/css/preview-panel.css', OPTIPRESS_PLUGIN_FILE ),
-			array(),
-			OPTIPRESS_VERSION
-		);
+		if ( $is_attachment_edit ) {
+			wp_enqueue_style(
+				'optipress-preview-panel-css',
+				plugins_url( 'assets/css/preview-panel.css', OPTIPRESS_PLUGIN_FILE ),
+				array(),
+				OPTIPRESS_VERSION
+			);
+		}
 	}
 
 	/**
@@ -124,10 +131,17 @@ final class Attachment_Preview_Panel {
 		echo '<div class="optipress-box">';
 		echo '<p><strong>' . esc_html__( 'Preview file (used for thumbnails):', 'optipress' ) . '</strong><br>';
 		echo $current_rel ? esc_html( $current_rel ) : '<em>' . esc_html__( 'None', 'optipress' ) . '</em>';
-		if ( $current_abs && file_exists( $current_abs ) ) {
-			echo '<br><a href="' . esc_url( $upload_dir['baseurl'] . '/' . ltrim( $current_rel, '/\\' ) ) . '" target="_blank">' . esc_html__( 'Open', 'optipress' ) . '</a>';
-		}
 		echo '</p>';
+
+		// Show preview image
+		if ( $current_abs && file_exists( $current_abs ) ) {
+			$preview_url = $upload_dir['baseurl'] . '/' . ltrim( $current_rel, '/\\' );
+			echo '<p style="margin: 10px 0;">';
+			echo '<img src="' . esc_url( $preview_url ) . '" alt="' . esc_attr__( 'Preview', 'optipress' ) . '" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;" />';
+			echo '</p>';
+			echo '<p><a href="' . esc_url( $preview_url ) . '" target="_blank" class="button button-small">' . esc_html__( 'Open Full Size', 'optipress' ) . '</a></p>';
+		}
+		echo '<hr style="margin: 15px 0;" />';
 
 		echo '<p><strong>' . esc_html__( 'Original file (preserved):', 'optipress' ) . '</strong><br>';
 		echo $original_rel ? esc_html( $original_rel ) : '<em>' . esc_html__( 'Not recorded', 'optipress' ) . '</em>';
@@ -161,14 +175,22 @@ final class Attachment_Preview_Panel {
 		// Only show rebuild preview if there's an original file
 		$meta = wp_get_attachment_metadata( $post->ID );
 		if ( is_array( $meta ) && ! empty( $meta['original_file'] ) ) {
-			$url = wp_nonce_url( admin_url( 'admin-ajax.php?action=optipress_rebuild_preview&attachment_id=' . $post->ID ), 'optipress_rebuild_preview' );
-			$actions['optipress_rebuild'] = '<a href="' . esc_url( $url ) . '" class="optipress-rebuild-link">' . esc_html__( 'Rebuild Preview', 'optipress' ) . '</a>';
+			$actions['optipress_rebuild'] = sprintf(
+				'<a href="#" class="optipress-rebuild-link" data-id="%d" data-nonce="%s">%s</a>',
+				$post->ID,
+				wp_create_nonce( 'optipress_rebuild_preview' ),
+				esc_html__( 'Rebuild Preview', 'optipress' )
+			);
 		}
 
 		// Always show regenerate thumbnails for images
 		if ( wp_attachment_is_image( $post->ID ) ) {
-			$url = wp_nonce_url( admin_url( 'admin-ajax.php?action=optipress_regenerate_thumbnails&attachment_id=' . $post->ID ), 'optipress_regenerate_thumbnails' );
-			$actions['optipress_regenerate'] = '<a href="' . esc_url( $url ) . '" class="optipress-regenerate-link">' . esc_html__( 'Regenerate Thumbnails', 'optipress' ) . '</a>';
+			$actions['optipress_regenerate'] = sprintf(
+				'<a href="#" class="optipress-regenerate-link" data-id="%d" data-nonce="%s">%s</a>',
+				$post->ID,
+				wp_create_nonce( 'optipress_regenerate_thumbnails' ),
+				esc_html__( 'Regenerate Thumbnails', 'optipress' )
+			);
 		}
 
 		return $actions;

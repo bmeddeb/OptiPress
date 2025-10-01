@@ -9,6 +9,12 @@
 	margin: 8px 0;
 }
 
+.optipress-box img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
 #optipress-rebuild-status {
 	margin-top: 6px;
 	color: #2f6f2f;
