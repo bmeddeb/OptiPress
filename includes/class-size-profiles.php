@@ -2,7 +2,8 @@
 /**
  * Size Profiles
  *
- * Admin UI to manage OptiPress thumbnail size profiles (name, width, height, crop).
+ * Admin UI to manage OptiPress image size profiles (name, width, height, crop, format).
+ * These define responsive image sizes for different screen sizes and layout requirements.
  * Stores in 'optipress_size_profiles' option.
  * Provides a filter so Thumbnailer can consume saved sizes.
  *
@@ -16,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Size_Profiles class
  *
- * Manages thumbnail size profiles configuration.
+ * Manages image size profiles configuration for responsive images.
  */
 final class Size_Profiles {
 	/**
@@ -61,8 +62,8 @@ final class Size_Profiles {
 		// Add as submenu under OptiPress
 		add_submenu_page(
 			'optipress',
-			__( 'OptiPress Thumbnails', 'optipress' ),
-			__( 'Thumbnails', 'optipress' ),
+			__( 'OptiPress Image Sizes', 'optipress' ),
+			__( 'Image Sizes', 'optipress' ),
 			'manage_options',
 			'optipress-thumbnails',
 			array( $this, 'render_page' )
@@ -83,9 +84,9 @@ final class Size_Profiles {
 		);
 		add_settings_section(
 			'optipress_size_profiles_section',
-			__( 'Thumbnail Size Profiles', 'optipress' ),
+			__( 'Image Size Profiles', 'optipress' ),
 			function () {
-				echo '<p>' . esc_html__( 'Define the sizes OptiPress will generate. Name must be lowercase letters, numbers, and underscores.', 'optipress' ) . '</p>';
+				echo '<p>' . esc_html__( 'Define responsive image sizes for OptiPress to generate. These are used for different screen sizes and layout requirements. Name must be lowercase letters, numbers, and underscores.', 'optipress' ) . '</p>';
 			},
 			'optipress-thumbnails'
 		);
@@ -196,15 +197,15 @@ final class Size_Profiles {
 		}
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'OptiPress Thumbnails', 'optipress' ); ?></h1>
+			<h1><?php echo esc_html__( 'OptiPress Image Sizes', 'optipress' ); ?></h1>
 			<form method="post" action="options.php" id="optipress-size-profiles-form">
 				<?php
 				settings_fields( 'optipress_size_profiles_group' );
 				do_settings_sections( 'optipress-thumbnails' );
-				submit_button( __( 'Save Profiles', 'optipress' ) );
+				submit_button( __( 'Save Image Sizes', 'optipress' ) );
 				?>
 			</form>
-			<p class="description"><?php echo esc_html__( 'Tip: Set height=0 for auto height. Enable "crop" to force exact WxH cover cropping.', 'optipress' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'Tip: Set height=0 for auto height (maintains aspect ratio). Enable "crop" to force exact dimensions with center cropping.', 'optipress' ); ?></p>
 		</div>
 		<?php
 	}
@@ -296,7 +297,7 @@ final class Size_Profiles {
 		}
 		echo '</tbody>';
 		echo '</table>';
-		echo '<p><button type="button" class="button" id="optipress-add-size">' . esc_html__( 'Add Size', 'optipress' ) . '</button></p>';
+		echo '<p><button type="button" class="button" id="optipress-add-size">' . esc_html__( 'Add Image Size', 'optipress' ) . '</button></p>';
 	}
 
 	/**

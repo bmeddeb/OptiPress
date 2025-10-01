@@ -370,8 +370,8 @@ class Admin_Interface {
 				</div>
 
 				<div class="optipress-card">
-					<h2><?php esc_html_e( 'Thumbnails', 'optipress' ); ?></h2>
-					<p><?php esc_html_e( 'Manage thumbnail size profiles and image dimensions.', 'optipress' ); ?></p>
+					<h2><?php esc_html_e( 'Image Sizes', 'optipress' ); ?></h2>
+					<p><?php esc_html_e( 'Configure responsive image sizes for different screen sizes and layouts.', 'optipress' ); ?></p>
 					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-thumbnails' ) ); ?>" class="button button-primary">
 						<?php esc_html_e( 'Manage Sizes', 'optipress' ); ?>
 					</a>

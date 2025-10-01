@@ -189,7 +189,7 @@ function optipress_init() {
 		\OptiPress\Attachment_Preview_Panel::get_instance();
 	}
 
-	// Initialize Size Profiles (thumbnail size management - after Admin_Interface)
+	// Initialize Size Profiles (responsive image size management - after Admin_Interface)
 	\OptiPress\Size_Profiles::get_instance();
 
 	// Initialize Thumbnailer (custom thumbnail generation)
