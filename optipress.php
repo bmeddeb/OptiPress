@@ -131,6 +131,9 @@ function optipress_load_files() {
 
 	// Attachment meta box
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-attachment-meta-box.php';
+
+	// Attachment preview panel
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-attachment-preview-panel.php';
 }
 
 /**
@@ -179,6 +182,7 @@ function optipress_init() {
 	if ( is_admin() ) {
 		\OptiPress\Admin_Interface::get_instance();
 		\OptiPress\Attachment_Meta_Box::get_instance();
+		\OptiPress\Attachment_Preview_Panel::get_instance();
 	}
 
 	// Allow supported image formats for upload

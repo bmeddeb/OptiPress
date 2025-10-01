@@ -1,0 +1,15 @@
+/**
+ * OptiPress Preview Panel Styles
+ */
+.optipress-box {
+	font-size: 12px;
+}
+
+.optipress-box p {
+	margin: 8px 0;
+}
+
+#optipress-rebuild-status {
+	margin-top: 6px;
+	color: #2f6f2f;
+}
