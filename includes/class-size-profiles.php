@@ -86,7 +86,14 @@ final class Size_Profiles {
 			'optipress_size_profiles_section',
 			__( 'Image Size Profiles', 'optipress' ),
 			function () {
+				$global_opts = get_option( 'optipress_options', array() );
+				$global_format = isset( $global_opts['format'] ) ? strtoupper( $global_opts['format'] ) : 'WebP';
 				echo '<p>' . esc_html__( 'Define responsive image sizes for OptiPress to generate. These are used for different screen sizes and layout requirements. Name must be lowercase letters, numbers, and underscores.', 'optipress' ) . '</p>';
+				echo '<p><strong>' . esc_html__( 'Format:', 'optipress' ) . '</strong> ' . sprintf(
+					/* translators: %s is the current Image Optimization format (WebP or AVIF) */
+					esc_html__( 'Choose "Auto" to use your Image Optimization format (%s), or select a specific format for each size. Advanced formats (TIFF, PSD, etc.) always use the Auto format.', 'optipress' ),
+					'<strong>' . esc_html( $global_format ) . '</strong>'
+				) . '</p>';
 			},
 			'optipress-thumbnails'
 		);
@@ -144,11 +151,11 @@ final class Size_Profiles {
 	 */
 	private function default_profiles() {
 		return array(
-			array( 'name' => 'thumbnail',    'width' => 150,  'height' => 150,  'crop' => true,  'format' => 'inherit' ),
-			array( 'name' => 'medium',       'width' => 300,  'height' => 0,    'crop' => false, 'format' => 'inherit' ),
-			array( 'name' => 'medium_large', 'width' => 768,  'height' => 0,    'crop' => false, 'format' => 'inherit' ),
-			array( 'name' => 'large',        'width' => 1024, 'height' => 0,    'crop' => false, 'format' => 'inherit' ),
-			array( 'name' => 'xl',           'width' => 1600, 'height' => 0,    'crop' => false, 'format' => 'inherit' ),
+			array( 'name' => 'thumbnail',    'width' => 150,  'height' => 150,  'crop' => true,  'format' => 'auto' ),
+			array( 'name' => 'medium',       'width' => 300,  'height' => 0,    'crop' => false, 'format' => 'auto' ),
+			array( 'name' => 'medium_large', 'width' => 768,  'height' => 0,    'crop' => false, 'format' => 'auto' ),
+			array( 'name' => 'large',        'width' => 1024, 'height' => 0,    'crop' => false, 'format' => 'auto' ),
+			array( 'name' => 'xl',           'width' => 1600, 'height' => 0,    'crop' => false, 'format' => 'auto' ),
 		);
 	}
 
@@ -184,8 +191,12 @@ final class Size_Profiles {
 	 */
 	private function normalize_format( $fmt ) {
 		$fmt = strtolower( (string) $fmt );
-		$allowed = array( 'inherit', 'avif', 'webp', 'jpeg', 'png' );
-		return in_array( $fmt, $allowed, true ) ? $fmt : 'inherit';
+		$allowed = array( 'auto', 'inherit', 'avif', 'webp', 'jpeg', 'png' );
+		// Convert legacy 'inherit' to 'auto'
+		if ( 'inherit' === $fmt ) {
+			$fmt = 'auto';
+		}
+		return in_array( $fmt, $allowed, true ) ? $fmt : 'auto';
 	}
 
 	/**
@@ -217,14 +228,26 @@ final class Size_Profiles {
 	 * @return string Human-readable label.
 	 */
 	private function human_format_label( $fmt ) {
+		$fmt = strtolower( $fmt );
+		// Convert legacy 'inherit' to 'auto'
+		if ( 'inherit' === $fmt ) {
+			$fmt = 'auto';
+		}
+
+		// Get global format for 'auto' display
+		if ( 'auto' === $fmt ) {
+			$global_opts = get_option( 'optipress_options', array() );
+			$global_format = isset( $global_opts['format'] ) ? strtoupper( $global_opts['format'] ) : 'WebP';
+			return $global_format;
+		}
+
 		$map = array(
-			'inherit' => 'Inherit',
 			'avif'    => 'AVIF',
 			'webp'    => 'WebP',
 			'jpeg'    => 'JPEG',
 			'png'     => 'PNG',
 		);
-		return $map[ strtolower( $fmt ) ] ?? 'Inherit';
+		return $map[ $fmt ] ?? 'Auto';
 	}
 
 	/**
@@ -289,9 +312,13 @@ final class Size_Profiles {
 		echo '<thead><tr><th>' . esc_html__( 'Name', 'optipress' ) . '</th><th>' . esc_html__( 'Width', 'optipress' ) . '</th><th>' . esc_html__( 'Height', 'optipress' ) . '</th><th>' . esc_html__( 'Crop', 'optipress' ) . '</th><th>' . esc_html__( 'Format', 'optipress' ) . '</th><th>' . esc_html__( 'Actions', 'optipress' ) . '</th></tr></thead>';
 		echo '<tbody id="optipress-size-profiles-body">';
 		foreach ( $rows as $i => $r ) {
-			// Ensure old rows get default 'inherit' on first render
+			// Ensure old rows get default 'auto' on first render
 			if ( ! isset( $r['format'] ) ) {
-				$r['format'] = 'inherit';
+				$r['format'] = 'auto';
+			}
+			// Convert legacy 'inherit' to 'auto'
+			if ( isset( $r['format'] ) && 'inherit' === $r['format'] ) {
+				$r['format'] = 'auto';
 			}
 			echo $this->row_html( $i, $r );
 		}
@@ -313,9 +340,18 @@ final class Size_Profiles {
 		$height = isset( $row['height'] ) ? (int) $row['height']       : 0;
 		$crop   = ! empty( $row['crop'] ) ? 'checked'                  : '';
 		$crop_b = ! empty( $row['crop'] );
-		$format = isset( $row['format'] ) ? strtolower( (string) $row['format'] ) : 'inherit';
+		$format = isset( $row['format'] ) ? strtolower( (string) $row['format'] ) : 'auto';
+		// Convert legacy 'inherit' to 'auto'
+		if ( 'inherit' === $format ) {
+			$format = 'auto';
+		}
+
+		// Get global format for hint
+		$global_opts = get_option( 'optipress_options', array() );
+		$global_format = isset( $global_opts['format'] ) ? strtoupper( $global_opts['format'] ) : 'WebP';
+
 		$opts   = array(
-			'inherit' => 'Inherit',
+			'auto'    => sprintf( 'Auto (%s)', $global_format ),
 			'avif'    => 'AVIF',
 			'webp'    => 'WebP',
 			'jpeg'    => 'JPEG',
@@ -353,7 +389,7 @@ final class Size_Profiles {
 	 */
 	private function row_template() {
 		// Placeholder {i} replaced in JS
-		return $this->row_html( '{i}', array( 'name' => '', 'width' => 0, 'height' => 0, 'crop' => false, 'format' => 'inherit' ) );
+		return $this->row_html( '{i}', array( 'name' => '', 'width' => 0, 'height' => 0, 'crop' => false, 'format' => 'auto' ) );
 	}
 
 	/**

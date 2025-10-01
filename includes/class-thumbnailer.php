@@ -131,23 +131,34 @@ final class Thumbnailer {
 		$metadata = is_array( $metadata ) ? $metadata : array();
 		$metadata['sizes'] = $metadata['sizes'] ?? array();
 
-		// Probe source preview once for base ext (for 'inherit')
+		// Get global format setting for 'auto' mode
+		$options = get_option( 'optipress_options', array() );
+		$global_format = isset( $options['format'] ) ? $options['format'] : 'webp';
+		$global_ext = ( 'avif' === $global_format ) ? 'avif' : 'webp';
+
+		// Probe source preview once for base ext
 		$source_ext = strtolower( $ext ); // ext of preview file (webp/avif/jpg/png)
 
 		foreach ( $sizes as $name => $spec ) {
 			$w = max( 0, (int) ( $spec['width']  ?? 0 ) );
 			$h = max( 0, (int) ( $spec['height'] ?? 0 ) );
 			$crop = (bool) ( $spec['crop'] ?? false );
-			$fmt  = strtolower( (string) ( $spec['format'] ?? 'inherit' ) );
+			$fmt  = strtolower( (string) ( $spec['format'] ?? 'auto' ) );
 
 			if ( 0 === $w && 0 === $h ) {
 				continue; // nothing to do
 			}
 
 			// Decide output ext for this size
-			$target_ext = $source_ext;
 			if ( in_array( $fmt, array( 'avif', 'webp', 'jpeg', 'png' ), true ) ) {
+				// Explicit format specified
 				$target_ext = ( 'jpeg' === $fmt ) ? 'jpg' : $fmt;
+			} elseif ( 'inherit' === $fmt ) {
+				// Legacy 'inherit' - keep source format
+				$target_ext = $source_ext;
+			} else {
+				// 'auto' or unrecognized - use global Image Optimization format
+				$target_ext = $global_ext;
 			}
 
 			$dest_filename = sprintf( '%s-%s.%s', $filename, $this->suffix( $w, $h, $crop ), $target_ext );

@@ -166,11 +166,15 @@ final class Advanced_Formats {
 			$im = $im->mergeImageLayers( \Imagick::LAYERMETHOD_FLATTEN );
 			$im->autoOrient();
 
-			// Pick target preview format based on editor support (AVIF → WebP → JPEG).
+			// Pick target preview format from OptiPress Image Optimization settings
+			$options = get_option( 'optipress_options', array() );
+			$format = isset( $options['format'] ) ? $options['format'] : 'webp';
+
+			// Verify format is supported, fallback to WebP → JPEG if not
 			$target_mime = 'image/jpeg';
-			if ( function_exists( 'wp_image_editor_supports' ) && wp_image_editor_supports( array( 'mime_type' => 'image/avif' ) ) ) {
+			if ( 'avif' === $format && function_exists( 'wp_image_editor_supports' ) && wp_image_editor_supports( array( 'mime_type' => 'image/avif' ) ) ) {
 				$target_mime = 'image/avif';
-			} elseif ( function_exists( 'wp_image_editor_supports' ) && wp_image_editor_supports( array( 'mime_type' => 'image/webp' ) ) ) {
+			} elseif ( 'webp' === $format || function_exists( 'wp_image_editor_supports' ) && wp_image_editor_supports( array( 'mime_type' => 'image/webp' ) ) ) {
 				$target_mime = 'image/webp';
 			}
 
