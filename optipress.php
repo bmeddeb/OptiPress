@@ -134,6 +134,12 @@ function optipress_load_files() {
 
 	// Attachment preview panel
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-attachment-preview-panel.php';
+
+	// Thumbnailer
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-thumbnailer.php';
+
+	// WP-CLI commands
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-cli.php';
 }
 
 /**
@@ -164,6 +170,9 @@ function optipress_init() {
 
 	// Initialize Advanced Formats (TIFF/PSD/RAW previews)
 	\OptiPress\Advanced_Formats::get_instance();
+
+	// Initialize Thumbnailer (custom thumbnail generation)
+	\OptiPress\Thumbnailer::get_instance();
 
 	// Initialize Upload UI Compatibility
 	\OptiPress\Upload_UI_Compat::get_instance();
