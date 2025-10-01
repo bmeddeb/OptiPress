@@ -210,6 +210,76 @@ final class Size_Profiles {
 	}
 
 	/**
+	 * Get human-readable format label
+	 *
+	 * @param string $fmt Format value.
+	 * @return string Human-readable label.
+	 */
+	private function human_format_label( $fmt ) {
+		$map = array(
+			'inherit' => 'Inherit',
+			'avif'    => 'AVIF',
+			'webp'    => 'WebP',
+			'jpeg'    => 'JPEG',
+			'png'     => 'PNG',
+		);
+		return $map[ strtolower( $fmt ) ] ?? 'Inherit';
+	}
+
+	/**
+	 * Build hint text for a size profile
+	 *
+	 * @param int    $w    Width.
+	 * @param int    $h    Height.
+	 * @param bool   $crop Whether to crop.
+	 * @param string $fmt  Format.
+	 * @return string Hint text.
+	 */
+	private function build_hint( $w, $h, $crop, $fmt ) {
+		$fmt_label = $this->human_format_label( $fmt );
+		if ( $w <= 0 && $h <= 0 ) {
+			return sprintf(
+				/* translators: %s is output format label */
+				esc_html__( 'No-op (set width or height). Output: %s.', 'optipress' ),
+				esc_html( $fmt_label )
+			);
+		}
+		if ( $w > 0 && $h === 0 ) {
+			return sprintf(
+				/* translators: 1: width, 2: output format */
+				esc_html__( 'Resize to %1$d px wide (height auto). Output: %2$s.', 'optipress' ),
+				$w,
+				esc_html( $fmt_label )
+			);
+		}
+		if ( $w === 0 && $h > 0 ) {
+			return sprintf(
+				/* translators: 1: height, 2: output format */
+				esc_html__( 'Resize to %1$d px tall (width auto). Output: %2$s.', 'optipress' ),
+				$h,
+				esc_html( $fmt_label )
+			);
+		}
+		// both > 0
+		if ( $crop ) {
+			return sprintf(
+				/* translators: 1: width, 2: height, 3: output format */
+				esc_html__( 'Cover crop to %1$d×%2$d (center). Output: %3$s.', 'optipress' ),
+				$w,
+				$h,
+				esc_html( $fmt_label )
+			);
+		}
+		return sprintf(
+			/* translators: 1: width, 2: height, 3: output format */
+			esc_html__( 'Fit inside %1$d×%2$d (keep aspect). Output: %3$s.', 'optipress' ),
+			$w,
+			$h,
+			esc_html( $fmt_label )
+		);
+	}
+
+	/**
 	 * Render profiles field
 	 */
 	public function render_profiles_field() {
@@ -241,6 +311,7 @@ final class Size_Profiles {
 		$width  = isset( $row['width'] )  ? (int) $row['width']        : 0;
 		$height = isset( $row['height'] ) ? (int) $row['height']       : 0;
 		$crop   = ! empty( $row['crop'] ) ? 'checked'                  : '';
+		$crop_b = ! empty( $row['crop'] );
 		$format = isset( $row['format'] ) ? strtolower( (string) $row['format'] ) : 'inherit';
 		$opts   = array(
 			'inherit' => 'Inherit',
@@ -250,19 +321,26 @@ final class Size_Profiles {
 			'png'     => 'PNG',
 		);
 
-		$html  = '<tr class="optipress-size-row">';
+		$hint_text = $this->build_hint( $width, $height, $crop_b, $format );
+
+		$html  = '<tr class="optipress-size-row"';
+		$html .= ' data-index="' . esc_attr( $index ) . '"';
+		$html .= '>';
 		$html .= '<td><input type="text" name="' . self::OPTION . '[' . $index . '][name]" value="' . $name . '" pattern="[a-z0-9_]{2,32}" required /></td>';
-		$html .= '<td><input type="number" name="' . self::OPTION . '[' . $index . '][width]" value="' . esc_attr( $width ) . '" min="0" step="1" /></td>';
-		$html .= '<td><input type="number" name="' . self::OPTION . '[' . $index . '][height]" value="' . esc_attr( $height ) . '" min="0" step="1" /></td>';
-		$html .= '<td><label><input type="checkbox" name="' . self::OPTION . '[' . $index . '][crop]" value="1" ' . $crop . ' /> ' . esc_html__( 'Crop', 'optipress' ) . '</label></td>';
+		$html .= '<td><input class="optipress-w" type="number" name="' . self::OPTION . '[' . $index . '][width]" value="' . esc_attr( $width ) . '" min="0" step="1" /></td>';
+		$html .= '<td><input class="optipress-h" type="number" name="' . self::OPTION . '[' . $index . '][height]" value="' . esc_attr( $height ) . '" min="0" step="1" /></td>';
+		$html .= '<td><label><input class="optipress-crop" type="checkbox" name="' . self::OPTION . '[' . $index . '][crop]" value="1" ' . $crop . ' /> ' . esc_html__( 'Crop', 'optipress' ) . '</label></td>';
 		// Format select
-		$html .= '<td><select name="' . self::OPTION . '[' . $index . '][format]">';
+		$html .= '<td><select class="optipress-fmt" name="' . self::OPTION . '[' . $index . '][format]">';
 		foreach ( $opts as $val => $label ) {
 			$sel = ( $format === $val ) ? 'selected' : '';
 			$html .= '<option value="' . esc_attr( $val ) . '" ' . $sel . '>' . esc_html( $label ) . '</option>';
 		}
 		$html .= '</select></td>';
-		$html .= '<td><button type="button" class="button-link delete-size">' . esc_html__( 'Delete', 'optipress' ) . '</button></td>';
+		$html .= '<td><button type="button" class="button-link delete-size">' . esc_html__( 'Delete', 'optipress' ) . '</button>';
+		// Live hint (prefilled from PHP for no-JS)
+		$html .= '<div class="optipress-size-hint" aria-live="polite">' . esc_html( $hint_text ) . '</div>';
+		$html .= '</td>';
 		$html .= '</tr>';
 		return $html;
 	}

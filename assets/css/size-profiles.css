@@ -16,3 +16,10 @@
 #optipress-size-profiles-table .delete-size {
 	color: #b32d2e;
 }
+
+.optipress-size-hint {
+	margin-top: 6px;
+	color: #666;
+	font-size: 12px;
+	line-height: 1.35;
+}
