@@ -172,6 +172,55 @@ class System_Check {
 	}
 
 	/**
+	 * Check RAW format support (via ImageMagick delegates)
+	 *
+	 * Checks if ImageMagick has delegates for common RAW camera formats.
+	 *
+	 * @return array {
+	 *     RAW format support information.
+	 *
+	 *     @type bool  $available       Whether Imagick is available.
+	 *     @type array $supported_raw   Array of supported RAW formats.
+	 *     @type bool  $has_delegates   Whether any RAW delegates are available.
+	 * }
+	 */
+	public function check_raw_format_support() {
+		if ( ! class_exists( 'Imagick' ) ) {
+			return array(
+				'available'      => false,
+				'supported_raw'  => array(),
+				'has_delegates'  => false,
+			);
+		}
+
+		try {
+			$formats = \Imagick::queryFormats();
+
+			// Common RAW formats to check
+			$raw_formats = array( 'DNG', 'CR2', 'CR3', 'NEF', 'ARW', 'ORF', 'RAF', 'RW2' );
+			$supported_raw = array();
+
+			foreach ( $raw_formats as $format ) {
+				if ( in_array( $format, $formats, true ) ) {
+					$supported_raw[] = $format;
+				}
+			}
+
+			return array(
+				'available'      => true,
+				'supported_raw'  => $supported_raw,
+				'has_delegates'  => ! empty( $supported_raw ),
+			);
+		} catch ( \Exception $e ) {
+			return array(
+				'available'      => false,
+				'supported_raw'  => array(),
+				'has_delegates'  => false,
+			);
+		}
+	}
+
+	/**
 	 * Get all system capabilities
 	 *
 	 * Returns a comprehensive report of available engines and formats.
@@ -183,6 +232,7 @@ class System_Check {
 	 *     @type array  $php              PHP version information.
 	 *     @type array  $gd               GD library information.
 	 *     @type array  $imagick          Imagick extension information.
+	 *     @type array  $raw              RAW format support information.
 	 *     @type array  $available_engines Available engines ('gd', 'imagick').
 	 *     @type array  $formats          Format support by engine.
 	 *     @type array  $warnings         Array of warning messages.
@@ -198,6 +248,7 @@ class System_Check {
 		$php     = $this->check_php_version();
 		$gd      = $this->check_gd_library();
 		$imagick = $this->check_imagick_extension();
+		$raw     = $this->check_raw_format_support();
 
 		// Determine available engines
 		$available_engines = array();
@@ -265,6 +316,7 @@ class System_Check {
 			'php'               => $php,
 			'gd'                => $gd,
 			'imagick'           => $imagick,
+			'raw'               => $raw,
 			'available_engines' => $available_engines,
 			'formats'           => $formats,
 			'warnings'          => $warnings,

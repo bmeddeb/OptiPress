@@ -184,6 +184,55 @@ $options = get_option( 'optipress_options', array() );
 		</tbody>
 	</table>
 
+	<!-- Advanced Format Support (TIFF/PSD/RAW) -->
+	<h3><?php esc_html_e( 'Advanced Format Support', 'optipress' ); ?></h3>
+	<table class="widefat striped">
+		<tbody>
+			<tr>
+				<td><strong><?php esc_html_e( 'Status', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( $capabilities['raw']['has_delegates'] ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'RAW Format Support Available', 'optipress' ); ?></span>
+					<?php else : ?>
+						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'No RAW Format Delegates', 'optipress' ); ?></span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<?php if ( $capabilities['raw']['available'] && $capabilities['raw']['has_delegates'] ) : ?>
+				<tr>
+					<td><strong><?php esc_html_e( 'Supported RAW Formats', 'optipress' ); ?></strong></td>
+					<td>
+						<?php if ( ! empty( $capabilities['raw']['supported_raw'] ) ) : ?>
+							<?php echo esc_html( implode( ', ', $capabilities['raw']['supported_raw'] ) ); ?>
+						<?php else : ?>
+							<?php esc_html_e( 'None detected', 'optipress' ); ?>
+						<?php endif; ?>
+					</td>
+				</tr>
+			<?php endif; ?>
+			<tr>
+				<td><strong><?php esc_html_e( 'TIFF/PSD Support', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( $capabilities['imagick']['available'] ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'Available via Imagick', 'optipress' ); ?></span>
+					<?php else : ?>
+						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'Requires Imagick', 'optipress' ); ?></span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<td><strong><?php esc_html_e( 'Preview Generation', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( isset( $options['advanced_previews'] ) && $options['advanced_previews'] ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'Enabled', 'optipress' ); ?></span>
+					<?php else : ?>
+						<?php esc_html_e( 'Disabled', 'optipress' ); ?>
+					<?php endif; ?>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
 	<!-- Format Support Summary -->
 	<h3><?php esc_html_e( 'Format Support Summary', 'optipress' ); ?></h3>
 	<table class="widefat striped">

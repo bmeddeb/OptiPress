@@ -3,7 +3,7 @@
  * Plugin Name: OptiPress
  * Plugin URI: https://optipress.meddeb.me
  * Description: Image optimization and safe SVG handling for WordPress. Converts images to WebP/AVIF and enables secure SVG uploads.
- * Version:     0.5.2
+ * Version:     0.5.5
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Ben Meddeb
@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'OPTIPRESS_VERSION', '0.5.2' );
+define( 'OPTIPRESS_VERSION', '0.5.5' );
 define( 'OPTIPRESS_PLUGIN_FILE', __FILE__ );
 define( 'OPTIPRESS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPTIPRESS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -73,6 +73,7 @@ function optipress_activate() {
 		'enable_content_filter' => true,
 		'use_picture_element'  => false,
 		'delivery_method'      => 'htaccess',  // htaccess, content_filter, both
+		'advanced_previews'    => true,        // Generate previews for TIFF/PSD/RAW
 	);
 
 	add_option( 'optipress_options', $default_options );
@@ -104,6 +105,7 @@ function optipress_load_files() {
 	// Core classes
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-system-check.php';
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-mime-type-map.php';
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-advanced-formats.php';
 
 	// Image conversion engines
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/engines/interface-image-engine.php';
@@ -137,6 +139,13 @@ function optipress_init() {
 	// Load required files
 	optipress_load_files();
 
+	// Backfill missing default for existing installs
+	$options = get_option( 'optipress_options', array() );
+	if ( ! array_key_exists( 'advanced_previews', $options ) ) {
+		$options['advanced_previews'] = true;
+		update_option( 'optipress_options', $options );
+	}
+
 	// Initialize System Check
 	\OptiPress\System_Check::get_instance();
 
@@ -148,6 +157,9 @@ function optipress_init() {
 
 	// Initialize SVG Sanitizer
 	\OptiPress\SVG_Sanitizer::get_instance();
+
+	// Initialize Advanced Formats (TIFF/PSD/RAW previews)
+	\OptiPress\Advanced_Formats::get_instance();
 
 	// Initialize Content Filter (front-end only)
 	if ( ! is_admin() ) {
@@ -293,6 +305,17 @@ function optipress_fix_plupload_mime_types( $plupload_settings ) {
 		'title'      => __( 'OptiPress Supported Images', 'optipress' ),
 		'extensions' => implode( ',', array_unique( $extensions ) ),
 	);
+
+	// Ensure max_file_size is set (prevents undefined warnings in some WP versions)
+	if ( ! isset( $plupload_settings['filters']['max_file_size'] ) ) {
+		$plupload_settings['filters']['max_file_size'] = '0b';
+	}
+
+	// Debug logging
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+		error_log( 'OptiPress: Plupload extensions being allowed: ' . implode( ',', array_unique( $extensions ) ) );
+		error_log( 'OptiPress: Plupload MIME types: ' . implode( ',', $mime_types ) );
+	}
 
 	return $plupload_settings;
 }

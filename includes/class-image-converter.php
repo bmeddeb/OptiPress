@@ -335,6 +335,24 @@ class Image_Converter {
 		// Perform conversion
 		$result = $engine->convert( $source_path, $dest_path, $format, $quality );
 
+		// Log result
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			if ( $result ) {
+				error_log( sprintf(
+					'OptiPress: Successfully converted %s to %s (Engine: %s)',
+					basename( $source_path ),
+					basename( $dest_path ),
+					$engine->get_name()
+				) );
+			} else {
+				error_log( sprintf(
+					'OptiPress: Failed to convert %s using %s engine',
+					basename( $source_path ),
+					$engine->get_name()
+				) );
+			}
+		}
+
 		// Log error if conversion failed
 		if ( ! $result ) {
 			$this->log_error(
