@@ -45,6 +45,7 @@ final class Attachment_Preview_Panel {
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'wp_ajax_optipress_rebuild_preview', array( $this, 'ajax_rebuild_preview' ) );
+		add_action( 'wp_ajax_optipress_regenerate_thumbnails', array( $this, 'ajax_regenerate_thumbnails' ) );
 
 		// Optional: row action link in Media Library list
 		add_filter( 'media_row_actions', array( $this, 'row_action_rebuild' ), 10, 2 );
@@ -86,8 +87,9 @@ final class Attachment_Preview_Panel {
 			'optipress-preview-panel',
 			'OptiPressPreview',
 			array(
-				'ajax'  => admin_url( 'admin-ajax.php' ),
-				'nonce' => wp_create_nonce( 'optipress_rebuild_preview' ),
+				'ajax'        => admin_url( 'admin-ajax.php' ),
+				'previewNonce' => wp_create_nonce( 'optipress_rebuild_preview' ),
+				'thumbsNonce'  => wp_create_nonce( 'optipress_regenerate_thumbnails' ),
 			)
 		);
 
@@ -135,8 +137,11 @@ final class Attachment_Preview_Panel {
 		echo '</p>';
 
 		$disabled = $original_abs && file_exists( $original_abs ) ? '' : 'disabled';
-		echo '<p><button id="optipress-rebuild-preview" class="button button-secondary" ' . $disabled . ' data-attachment="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Rebuild Preview', 'optipress' ) . '</button></p>';
-		echo '<p class="description">' . esc_html__( 'Recreates the preview (WebP/AVIF/JPEG) from the original file and regenerates thumbnails.', 'optipress' ) . '</p>';
+		echo '<p>';
+		echo '<button id="optipress-rebuild-preview" class="button button-secondary" ' . $disabled . ' data-attachment="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Rebuild Preview', 'optipress' ) . '</button> ';
+		echo '<button id="optipress-regenerate-thumbnails" class="button button-secondary" data-attachment="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Regenerate Thumbnails', 'optipress' ) . '</button>';
+		echo '</p>';
+		echo '<p class="description">' . esc_html__( 'Rebuild Preview: Recreates preview from original. Regenerate Thumbnails: Rebuilds all thumbnail sizes from current file.', 'optipress' ) . '</p>';
 		echo '<div id="optipress-rebuild-status" style="display:none"></div>';
 		echo '</div>';
 	}
@@ -153,13 +158,19 @@ final class Attachment_Preview_Panel {
 			return $actions;
 		}
 
+		// Only show rebuild preview if there's an original file
 		$meta = wp_get_attachment_metadata( $post->ID );
-		if ( ! is_array( $meta ) || empty( $meta['original_file'] ) ) {
-			return $actions;
+		if ( is_array( $meta ) && ! empty( $meta['original_file'] ) ) {
+			$url = wp_nonce_url( admin_url( 'admin-ajax.php?action=optipress_rebuild_preview&attachment_id=' . $post->ID ), 'optipress_rebuild_preview' );
+			$actions['optipress_rebuild'] = '<a href="' . esc_url( $url ) . '" class="optipress-rebuild-link">' . esc_html__( 'Rebuild Preview', 'optipress' ) . '</a>';
 		}
 
-		$url = wp_nonce_url( admin_url( 'admin-ajax.php?action=optipress_rebuild_preview&attachment_id=' . $post->ID ), 'optipress_rebuild_preview' );
-		$actions['optipress_rebuild'] = '<a href="' . esc_url( $url ) . '" class="optipress-rebuild-link">' . esc_html__( 'Rebuild Preview', 'optipress' ) . '</a>';
+		// Always show regenerate thumbnails for images
+		if ( wp_attachment_is_image( $post->ID ) ) {
+			$url = wp_nonce_url( admin_url( 'admin-ajax.php?action=optipress_regenerate_thumbnails&attachment_id=' . $post->ID ), 'optipress_regenerate_thumbnails' );
+			$actions['optipress_regenerate'] = '<a href="' . esc_url( $url ) . '" class="optipress-regenerate-link">' . esc_html__( 'Regenerate Thumbnails', 'optipress' ) . '</a>';
+		}
+
 		return $actions;
 	}
 
@@ -211,6 +222,73 @@ final class Attachment_Preview_Panel {
 				'message'      => __( 'Preview rebuilt successfully.', 'optipress' ),
 				'preview_file' => _wp_relative_upload_path( $new_current ),
 				'meta'         => $new_meta,
+			)
+		);
+	}
+
+	/**
+	 * AJAX handler for regenerate thumbnails
+	 */
+	public function ajax_regenerate_thumbnails() {
+		if ( ! current_user_can( 'upload_files' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'optipress' ) ), 403 );
+		}
+		check_ajax_referer( 'optipress_regenerate_thumbnails' );
+
+		$id = isset( $_REQUEST['attachment_id'] ) ? absint( $_REQUEST['attachment_id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid attachment ID.', 'optipress' ) ), 400 );
+		}
+
+		if ( ! wp_attachment_is_image( $id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Attachment is not an image.', 'optipress' ) ), 400 );
+		}
+
+		$current_file = get_attached_file( $id, true );
+		if ( ! $current_file || ! file_exists( $current_file ) ) {
+			wp_send_json_error( array( 'message' => __( 'File not found.', 'optipress' ) ), 404 );
+		}
+
+		// Get current metadata
+		$meta = wp_get_attachment_metadata( $id );
+		if ( ! is_array( $meta ) ) {
+			$meta = array();
+		}
+
+		// Delete existing thumbnail files
+		if ( isset( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+			$upload_dir = wp_get_upload_dir();
+			$dirname = dirname( $current_file );
+			foreach ( $meta['sizes'] as $size_data ) {
+				if ( ! empty( $size_data['file'] ) ) {
+					$thumb_path = trailingslashit( $dirname ) . $size_data['file'];
+					if ( file_exists( $thumb_path ) ) {
+						@unlink( $thumb_path );
+					}
+				}
+			}
+		}
+
+		// Clear sizes from metadata
+		$meta['sizes'] = array();
+
+		// Trigger thumbnail generation via Thumbnailer
+		$meta = apply_filters( 'wp_generate_attachment_metadata', $meta, $id );
+
+		// Update metadata
+		wp_update_attachment_metadata( $id, $meta );
+
+		$count = is_array( $meta ) && isset( $meta['sizes'] ) ? count( $meta['sizes'] ) : 0;
+
+		wp_send_json_success(
+			array(
+				'message' => sprintf(
+					/* translators: %d is the number of thumbnails generated */
+					__( 'Successfully regenerated %d thumbnail(s).', 'optipress' ),
+					$count
+				),
+				'count'   => $count,
+				'meta'    => $meta,
 			)
 		);
 	}

@@ -48,9 +48,11 @@ class Batch_Processor {
 	private function __construct() {
 		// AJAX handlers
 		add_action( 'wp_ajax_optipress_get_batch_stats', array( $this, 'ajax_get_batch_stats' ) );
+		add_action( 'wp_ajax_optipress_get_image_stats', array( $this, 'ajax_get_image_stats' ) );
 		add_action( 'wp_ajax_optipress_process_batch', array( $this, 'ajax_process_batch' ) );
 		add_action( 'wp_ajax_optipress_revert_images', array( $this, 'ajax_revert_images' ) );
 		add_action( 'wp_ajax_optipress_sanitize_svg_batch', array( $this, 'ajax_sanitize_svg_batch' ) );
+		add_action( 'wp_ajax_optipress_regenerate_thumbnails_batch', array( $this, 'ajax_regenerate_thumbnails_batch' ) );
 	}
 
 	/**
@@ -532,5 +534,115 @@ class Batch_Processor {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Get simple image statistics
+	 * AJAX handler for getting total image count
+	 */
+	public function ajax_get_image_stats() {
+		check_ajax_referer( 'optipress_batch', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'optipress' ) ) );
+		}
+
+		global $wpdb;
+		$total = (int) $wpdb->get_var(
+			"SELECT COUNT(ID) FROM {$wpdb->posts}
+			WHERE post_type = 'attachment'
+			AND post_mime_type LIKE 'image/%'"
+		);
+
+		wp_send_json_success( array( 'total' => $total ) );
+	}
+
+	/**
+	 * Regenerate thumbnails batch
+	 * AJAX handler for batch thumbnail regeneration
+	 */
+	public function ajax_regenerate_thumbnails_batch() {
+		check_ajax_referer( 'optipress_batch', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'optipress' ) ) );
+		}
+
+		$offset = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+		$batch_size = 5; // Process 5 images per request
+
+		global $wpdb;
+
+		// Get total count
+		$total = (int) $wpdb->get_var(
+			"SELECT COUNT(ID) FROM {$wpdb->posts}
+			WHERE post_type = 'attachment'
+			AND post_mime_type LIKE 'image/%'"
+		);
+
+		// Get batch of image IDs
+		$image_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts}
+				WHERE post_type = 'attachment'
+				AND post_mime_type LIKE 'image/%%'
+				ORDER BY ID ASC
+				LIMIT %d OFFSET %d",
+				$batch_size,
+				$offset
+			)
+		);
+
+		$processed = $offset;
+
+		foreach ( $image_ids as $id ) {
+			// Get current file
+			$current_file = get_attached_file( $id, true );
+			if ( ! $current_file || ! file_exists( $current_file ) ) {
+				$processed++;
+				continue;
+			}
+
+			// Get metadata
+			$meta = wp_get_attachment_metadata( $id );
+			if ( ! is_array( $meta ) ) {
+				$meta = array();
+			}
+
+			// Delete existing thumbnails
+			if ( isset( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+				$dirname = dirname( $current_file );
+				foreach ( $meta['sizes'] as $size_data ) {
+					if ( ! empty( $size_data['file'] ) ) {
+						$thumb_path = trailingslashit( $dirname ) . $size_data['file'];
+						if ( file_exists( $thumb_path ) ) {
+							@unlink( $thumb_path );
+						}
+					}
+				}
+			}
+
+			// Clear sizes
+			$meta['sizes'] = array();
+
+			// Regenerate thumbnails
+			$meta = apply_filters( 'wp_generate_attachment_metadata', $meta, $id );
+
+			// Update metadata
+			wp_update_attachment_metadata( $id, $meta );
+
+			$processed++;
+		}
+
+		$done = $processed >= $total;
+
+		wp_send_json_success(
+			array(
+				'processed' => $processed,
+				'total'     => $total,
+				'offset'    => $processed,
+				'done'      => $done,
+			)
+		);
 	}
 }

@@ -1,41 +1,80 @@
 /**
  * OptiPress Preview Panel
  *
- * Handles AJAX rebuild preview functionality.
+ * Handles AJAX rebuild preview and regenerate thumbnails functionality.
  */
 jQuery(function ($) {
-  const $btn = $('#optipress-rebuild-preview');
-  if (!$btn.length) return;
-
+  const $previewBtn = $('#optipress-rebuild-preview');
+  const $thumbsBtn = $('#optipress-regenerate-thumbnails');
   const $status = $('#optipress-rebuild-status');
 
-  $btn.on('click', function (e) {
-    e.preventDefault();
-    if ($btn.prop('disabled')) return;
+  if (!$previewBtn.length && !$thumbsBtn.length) return;
 
-    const id = $btn.data('attachment');
-    $btn.prop('disabled', true).text('Rebuilding…');
-    $status.show().text('Working…');
+  // Rebuild Preview button
+  if ($previewBtn.length) {
+    $previewBtn.on('click', function (e) {
+      e.preventDefault();
+      if ($previewBtn.prop('disabled')) return;
 
-    $.post(OptiPressPreview.ajax, {
-      action: 'optipress_rebuild_preview',
-      _ajax_nonce: OptiPressPreview.nonce,
-      attachment_id: id
-    })
-    .done(function (res) {
-      if (res && res.success) {
-        $status.text(res.data.message + (res.data.preview_file ? (' → ' + res.data.preview_file) : ''));
-        $btn.text('Rebuild Preview');
-        $btn.prop('disabled', false);
-      } else {
-        $status.text((res && res.data && res.data.message) || 'Failed.');
-        $btn.text('Rebuild Preview').prop('disabled', false);
-      }
-    })
-    .fail(function (xhr) {
-      const msg = (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) || 'Error';
-      $status.text(msg);
-      $btn.text('Rebuild Preview').prop('disabled', false);
+      const id = $previewBtn.data('attachment');
+      $previewBtn.prop('disabled', true).text('Rebuilding…');
+      $status.show().text('Working…');
+
+      $.post(OptiPressPreview.ajax, {
+        action: 'optipress_rebuild_preview',
+        _ajax_nonce: OptiPressPreview.previewNonce,
+        attachment_id: id
+      })
+      .done(function (res) {
+        if (res && res.success) {
+          $status.text(res.data.message + (res.data.preview_file ? (' → ' + res.data.preview_file) : ''));
+          $previewBtn.text('Rebuild Preview').prop('disabled', false);
+        } else {
+          $status.text((res && res.data && res.data.message) || 'Failed.');
+          $previewBtn.text('Rebuild Preview').prop('disabled', false);
+        }
+      })
+      .fail(function (xhr) {
+        const msg = (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) || 'Error';
+        $status.text(msg);
+        $previewBtn.text('Rebuild Preview').prop('disabled', false);
+      });
     });
-  });
+  }
+
+  // Regenerate Thumbnails button
+  if ($thumbsBtn.length) {
+    $thumbsBtn.on('click', function (e) {
+      e.preventDefault();
+      if ($thumbsBtn.prop('disabled')) return;
+
+      const id = $thumbsBtn.data('attachment');
+      $thumbsBtn.prop('disabled', true).text('Regenerating…');
+      $status.show().text('Working…');
+
+      $.post(OptiPressPreview.ajax, {
+        action: 'optipress_regenerate_thumbnails',
+        _ajax_nonce: OptiPressPreview.thumbsNonce,
+        attachment_id: id
+      })
+      .done(function (res) {
+        if (res && res.success) {
+          $status.text(res.data.message);
+          $thumbsBtn.text('Regenerate Thumbnails').prop('disabled', false);
+          // Optionally reload the page to show new thumbnails
+          if (res.data.count > 0) {
+            setTimeout(function() { location.reload(); }, 1500);
+          }
+        } else {
+          $status.text((res && res.data && res.data.message) || 'Failed.');
+          $thumbsBtn.text('Regenerate Thumbnails').prop('disabled', false);
+        }
+      })
+      .fail(function (xhr) {
+        const msg = (xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) || 'Error';
+        $status.text(msg);
+        $thumbsBtn.text('Regenerate Thumbnails').prop('disabled', false);
+      });
+    });
+  }
 });
