@@ -268,11 +268,11 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 	</div>
 </div>
 
-<!-- Thumbnail Regeneration Section -->
+<!-- Image Sizes Regeneration Section -->
 <div class="optipress-settings-section optipress-thumbs-section">
-	<h2><?php esc_html_e( 'Regenerate Thumbnails', 'optipress' ); ?></h2>
+	<h2><?php esc_html_e( 'Rebuild Image Sizes', 'optipress' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'Regenerate all thumbnail sizes for existing images using your current size profiles. Useful after changing thumbnail sizes or formats.', 'optipress' ); ?>
+		<?php esc_html_e( 'Rebuild all image sizes for existing images using your current size profiles. Useful after changing image sizes or formats.', 'optipress' ); ?>
 	</p>
 
 	<div class="optipress-thumbs-stats">
@@ -298,7 +298,7 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 
 	<div class="optipress-thumbs-controls" style="margin-top: 20px;">
 		<button type="button" id="optipress-regenerate-thumbs" class="button button-primary" disabled>
-			<?php esc_html_e( 'Regenerate All Thumbnails', 'optipress' ); ?>
+			<?php esc_html_e( 'Rebuild All Image Sizes', 'optipress' ); ?>
 		</button>
 	</div>
 
@@ -313,7 +313,7 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 	<div class="notice notice-info inline" style="margin-top: 20px;">
 		<p>
 			<strong><?php esc_html_e( 'Note:', 'optipress' ); ?></strong>
-			<?php esc_html_e( 'This will delete and regenerate all thumbnail files for all images. Original files and preview files are not affected.', 'optipress' ); ?>
+			<?php esc_html_e( 'This will delete and rebuild all image size files for all images. Original files and preview files are not affected.', 'optipress' ); ?>
 		</p>
 	</div>
 </div>

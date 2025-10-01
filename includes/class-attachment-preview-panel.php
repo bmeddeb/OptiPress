@@ -153,9 +153,9 @@ final class Attachment_Preview_Panel {
 		$disabled = $original_abs && file_exists( $original_abs ) ? '' : 'disabled';
 		echo '<p>';
 		echo '<button id="optipress-rebuild-preview" class="button button-secondary" ' . $disabled . ' data-attachment="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Rebuild Preview', 'optipress' ) . '</button> ';
-		echo '<button id="optipress-regenerate-thumbnails" class="button button-secondary" data-attachment="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Regenerate Thumbnails', 'optipress' ) . '</button>';
+		echo '<button id="optipress-regenerate-thumbnails" class="button button-secondary" data-attachment="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Rebuild Images', 'optipress' ) . '</button>';
 		echo '</p>';
-		echo '<p class="description">' . esc_html__( 'Rebuild Preview: Recreates preview from original. Regenerate Thumbnails: Rebuilds all thumbnail sizes from current file.', 'optipress' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Rebuild Preview: Recreates preview from original. Rebuild Images: Regenerates all image sizes from current preview.', 'optipress' ) . '</p>';
 		echo '<div id="optipress-rebuild-status" style="display:none"></div>';
 		echo '</div>';
 	}
@@ -183,13 +183,13 @@ final class Attachment_Preview_Panel {
 			);
 		}
 
-		// Always show regenerate thumbnails for images
+		// Always show rebuild images for images
 		if ( wp_attachment_is_image( $post->ID ) ) {
 			$actions['optipress_regenerate'] = sprintf(
 				'<a href="#" class="optipress-regenerate-link" data-id="%d" data-nonce="%s">%s</a>',
 				$post->ID,
 				wp_create_nonce( 'optipress_regenerate_thumbnails' ),
-				esc_html__( 'Regenerate Thumbnails', 'optipress' )
+				esc_html__( 'Rebuild Images', 'optipress' )
 			);
 		}
 
@@ -305,8 +305,8 @@ final class Attachment_Preview_Panel {
 		wp_send_json_success(
 			array(
 				'message' => sprintf(
-					/* translators: %d is the number of thumbnails generated */
-					__( 'Successfully regenerated %d thumbnail(s).', 'optipress' ),
+					/* translators: %d is the number of image sizes generated */
+					__( 'Successfully rebuilt %d image size(s).', 'optipress' ),
 					$count
 				),
 				'count'   => $count,
