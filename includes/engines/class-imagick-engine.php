@@ -173,12 +173,10 @@ class Imagick_Engine implements ImageEngineInterface {
 	public function convert( $source_path, $dest_path, $format, $quality ) {
 		// Validate inputs
 		if ( ! file_exists( $source_path ) || ! is_readable( $source_path ) ) {
-			error_log( 'OptiPress: Source file does not exist or is not readable: ' . $source_path );
 			return false;
 		}
 
 		if ( ! $this->supports_format( $format ) ) {
-			error_log( 'OptiPress: Format not supported: ' . $format );
 			return false;
 		}
 
@@ -189,10 +187,6 @@ class Imagick_Engine implements ImageEngineInterface {
 
 		// Require at least 64MB free memory for image processing
 		if ( $available_memory < 67108864 ) {
-			error_log( sprintf(
-				'OptiPress: Insufficient memory for conversion. Available: %s, Required: 64MB',
-				size_format( $available_memory )
-			) );
 			return false;
 		}
 
@@ -206,11 +200,6 @@ class Imagick_Engine implements ImageEngineInterface {
 		$max_filesize = apply_filters( 'optipress_max_filesize_bytes', 10485760 );
 
 		if ( $file_size > $max_filesize ) {
-			error_log( sprintf(
-				'OptiPress: File too large for safe conversion: %s (%s)',
-				basename( $source_path ),
-				size_format( $file_size )
-			) );
 			return false;
 		}
 
@@ -233,16 +222,9 @@ class Imagick_Engine implements ImageEngineInterface {
 			// Load source image with error handling
 			try {
 				if ( ! $imagick->readImage( $source_path ) ) {
-					error_log( 'OptiPress Imagick: Failed to read image: ' . $source_path );
 					return false;
 				}
 			} catch ( \ImagickException $e ) {
-				error_log( sprintf(
-					'OptiPress Imagick: Exception reading %s - %s (Code: %d)',
-					basename( $source_path ),
-					$e->getMessage(),
-					$e->getCode()
-				) );
 				$this->cleanup_imagick( $imagick );
 				return false;
 			}
@@ -261,12 +243,6 @@ class Imagick_Engine implements ImageEngineInterface {
 
 			// Skip extremely large images
 			if ( $pixels > $max_pixels ) {
-				error_log( sprintf(
-					'OptiPress: Image dimensions too large: %dx%d (%s pixels)',
-					$width,
-					$height,
-					number_format( $pixels )
-				) );
 				$this->cleanup_imagick( $imagick );
 				return false;
 			}
@@ -309,7 +285,6 @@ class Imagick_Engine implements ImageEngineInterface {
 			try {
 				$result = $imagick->writeImage( $dest_path );
 			} catch ( \ImagickException $e ) {
-				error_log( 'OptiPress: ImagickException while writing image: ' . $e->getMessage() );
 				$this->cleanup_imagick( $imagick );
 
 				// Clean up partial file if it exists
@@ -324,23 +299,19 @@ class Imagick_Engine implements ImageEngineInterface {
 
 			// Verify output file was created
 			if ( ! file_exists( $dest_path ) || filesize( $dest_path ) === 0 ) {
-				error_log( 'OptiPress: Conversion produced no output file or empty file' );
 				return false;
 			}
 
 			return $result;
 
 		} catch ( \ImagickException $e ) {
-			error_log( 'OptiPress: ImagickException: ' . $e->getMessage() );
 			$this->cleanup_imagick( $imagick );
 			return false;
 		} catch ( \Exception $e ) {
-			error_log( 'OptiPress: Exception during conversion: ' . $e->getMessage() );
 			$this->cleanup_imagick( $imagick );
 			return false;
 		} catch ( \Throwable $e ) {
 			// Catch any other errors (PHP 7+)
-			error_log( 'OptiPress: Fatal error during conversion: ' . $e->getMessage() );
 			$this->cleanup_imagick( $imagick );
 			return false;
 		}

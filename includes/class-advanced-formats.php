@@ -141,14 +141,6 @@ final class Advanced_Formats {
 		 */
 		$max_size = apply_filters( 'optipress_advanced_max_filesize', 209715200 );
 		if ( false !== $file_size && $file_size > $max_size ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( sprintf(
-					'OptiPress: Skipping preview for %s - file too large (%s > %s)',
-					basename( $file ),
-					size_format( $file_size ),
-					size_format( $max_size )
-				) );
-			}
 			return $metadata; // skip preview on very large files
 		}
 
@@ -235,9 +227,6 @@ final class Advanced_Formats {
 			return $meta;
 
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'OptiPress Advanced_Formats preview failed for ' . $file . ': ' . $e->getMessage() );
-			}
 			return $metadata; // Fail-safe: keep original metadata.
 		}
 	}

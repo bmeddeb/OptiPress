@@ -132,12 +132,10 @@ class GD_Engine implements ImageEngineInterface {
 	public function convert( $source_path, $dest_path, $format, $quality ) {
 		// Validate inputs
 		if ( ! file_exists( $source_path ) || ! is_readable( $source_path ) ) {
-			error_log( 'OptiPress GD: Source file does not exist or is not readable: ' . $source_path );
 			return false;
 		}
 
 		if ( ! $this->supports_format( $format ) ) {
-			error_log( 'OptiPress GD: Format not supported: ' . $format );
 			return false;
 		}
 
@@ -148,10 +146,6 @@ class GD_Engine implements ImageEngineInterface {
 
 		// Require at least 64MB free memory for image processing
 		if ( $available_memory < 67108864 ) {
-			error_log( sprintf(
-				'OptiPress GD: Insufficient memory for conversion. Available: %s, Required: 64MB',
-				size_format( $available_memory )
-			) );
 			return false;
 		}
 
@@ -165,11 +159,6 @@ class GD_Engine implements ImageEngineInterface {
 		$max_filesize = apply_filters( 'optipress_max_filesize_bytes', 10485760 );
 
 		if ( $file_size > $max_filesize ) {
-			error_log( sprintf(
-				'OptiPress GD: File too large for safe conversion: %s (%s)',
-				basename( $source_path ),
-				size_format( $file_size )
-			) );
 			return false;
 		}
 
@@ -180,7 +169,6 @@ class GD_Engine implements ImageEngineInterface {
 		$image_resource = $this->load_image( $source_path );
 
 		if ( false === $image_resource ) {
-			error_log( 'OptiPress GD: Failed to load image: ' . $source_path );
 			return false;
 		}
 
@@ -198,12 +186,6 @@ class GD_Engine implements ImageEngineInterface {
 
 		// Skip extremely large images
 		if ( $pixels > $max_pixels ) {
-			error_log( sprintf(
-				'OptiPress GD: Image dimensions too large: %dx%d (%s pixels)',
-				$width,
-				$height,
-				number_format( $pixels )
-			) );
 			imagedestroy( $image_resource );
 			return false;
 		}
@@ -216,9 +198,6 @@ class GD_Engine implements ImageEngineInterface {
 			switch ( $format ) {
 				case 'webp':
 					$result = @imagewebp( $image_resource, $dest_path, $quality );
-					if ( false === $result ) {
-						error_log( 'OptiPress GD: imagewebp() failed' );
-					}
 					break;
 
 				case 'avif':
@@ -226,16 +205,11 @@ class GD_Engine implements ImageEngineInterface {
 					// Use -1 for lossless, 0-100 for lossy (lower = better quality)
 					$avif_quality = 100 - $quality;
 					$result       = @imageavif( $image_resource, $dest_path, $avif_quality );
-					if ( false === $result ) {
-						error_log( 'OptiPress GD: imageavif() failed' );
-					}
 					break;
 			}
 		} catch ( \Exception $e ) {
-			error_log( 'OptiPress GD: Exception during conversion: ' . $e->getMessage() );
 			$result = false;
 		} catch ( \Throwable $e ) {
-			error_log( 'OptiPress GD: Fatal error during conversion: ' . $e->getMessage() );
 			$result = false;
 		}
 
@@ -244,7 +218,6 @@ class GD_Engine implements ImageEngineInterface {
 
 		// Verify output file was created
 		if ( $result && ( ! file_exists( $dest_path ) || filesize( $dest_path ) === 0 ) ) {
-			error_log( 'OptiPress GD: Conversion produced no output file or empty file' );
 			return false;
 		}
 

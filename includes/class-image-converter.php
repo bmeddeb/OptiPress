@@ -110,25 +110,13 @@ class Image_Converter {
 	 * @return array Modified metadata.
 	 */
 	public function convert_on_upload( $metadata, $attachment_id ) {
-		// Debug logging
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( sprintf( 'OptiPress: convert_on_upload called for attachment %d', $attachment_id ) );
-			error_log( 'OptiPress: Metadata: ' . print_r( $metadata, true ) );
-		}
-
 		// Check if auto-convert is enabled
 		if ( ! $this->is_auto_convert_enabled() ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'OptiPress: Auto-convert is disabled' );
-			}
 			return $metadata;
 		}
 
 		// Check if this is an image attachment
 		if ( ! wp_attachment_is_image( $attachment_id ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( sprintf( 'OptiPress: Attachment %d is not an image', $attachment_id ) );
-			}
 			return $metadata;
 		}
 
@@ -136,27 +124,13 @@ class Image_Converter {
 		$file_path = get_attached_file( $attachment_id );
 		$mime_type = get_post_mime_type( $attachment_id );
 
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( sprintf( 'OptiPress: File path: %s, MIME: %s', $file_path, $mime_type ) );
-		}
-
 		if ( ! $file_path || ! file_exists( $file_path ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( sprintf( 'OptiPress: File not found: %s', $file_path ) );
-			}
 			return $metadata;
 		}
 
 		// Check if file type should be converted
 		if ( ! $this->should_convert_file( $file_path ) ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( sprintf( 'OptiPress: File type not supported for conversion: %s', $mime_type ) );
-			}
 			return $metadata;
-		}
-
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( sprintf( 'OptiPress: Starting conversion for %s', basename( $file_path ) ) );
 		}
 
 		// Mark as processing immediately (before conversion starts)
@@ -214,9 +188,6 @@ class Image_Converter {
 		} else {
 			// No WordPress-generated thumbnails exist
 			// This can happen with formats WordPress doesn't natively support (TIFF, PSD, etc.)
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( sprintf( 'OptiPress: No thumbnail metadata for attachment %d - WordPress may not support this format natively', $attachment_id ) );
-			}
 		}
 
 		// Store conversion metadata
@@ -316,10 +287,6 @@ class Image_Converter {
 							strtoupper( $format )
 						)
 					);
-				} else {
-					if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-						error_log( sprintf( 'OptiPress: No available engine supports %s format.', strtoupper( $format ) ) );
-					}
 				}
 
 				return false;
@@ -334,24 +301,6 @@ class Image_Converter {
 
 		// Perform conversion
 		$result = $engine->convert( $source_path, $dest_path, $format, $quality );
-
-		// Log result
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			if ( $result ) {
-				error_log( sprintf(
-					'OptiPress: Successfully converted %s to %s (Engine: %s)',
-					basename( $source_path ),
-					basename( $dest_path ),
-					$engine->get_name()
-				) );
-			} else {
-				error_log( sprintf(
-					'OptiPress: Failed to convert %s using %s engine',
-					basename( $source_path ),
-					$engine->get_name()
-				) );
-			}
-		}
 
 		// Log error if conversion failed
 		if ( ! $result ) {
@@ -480,11 +429,6 @@ class Image_Converter {
 		);
 
 		update_post_meta( $attachment_id, '_optipress_errors', $existing_errors );
-
-		// Log to WordPress debug log if enabled
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( sprintf( 'OptiPress: [Attachment ID: %d] %s', $attachment_id, $message ) );
-		}
 	}
 
 	/**

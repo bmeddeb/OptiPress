@@ -249,10 +249,6 @@ function optipress_fix_mime_type_validation( $file_data, $file, $filename, $mime
 		if ( isset( $mimes ) && in_array( $mime_type, $mimes, true ) ) {
 			$file_data['ext']  = $file_ext;
 			$file_data['type'] = $mime_type;
-
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( sprintf( 'OptiPress: Fixed MIME type for %s: %s', $filename, $mime_type ) );
-			}
 		}
 	}
 

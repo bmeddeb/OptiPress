@@ -208,11 +208,6 @@ final class Upload_UI_Compat {
 			'extensions' => $exts_comma,
 		);
 
-		// Debug logging
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( 'OptiPress Upload_UI_Compat: Plupload extensions allowed: ' . $exts_comma );
-		}
-
 		return $s;
 	}
 
