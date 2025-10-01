@@ -174,12 +174,6 @@ function optipress_init() {
 	// Initialize Advanced Formats (TIFF/PSD/RAW previews)
 	\OptiPress\Advanced_Formats::get_instance();
 
-	// Initialize Size Profiles (thumbnail size management)
-	\OptiPress\Size_Profiles::get_instance();
-
-	// Initialize Thumbnailer (custom thumbnail generation)
-	\OptiPress\Thumbnailer::get_instance();
-
 	// Initialize Upload UI Compatibility
 	\OptiPress\Upload_UI_Compat::get_instance();
 
@@ -188,16 +182,22 @@ function optipress_init() {
 		\OptiPress\Content_Filter::get_instance();
 	}
 
-	// Initialize Batch Processor (admin-only)
-	if ( is_admin() ) {
-		\OptiPress\Batch_Processor::get_instance();
-	}
-
-	// Initialize Admin Interface
+	// Initialize Admin Interface (must be before Size_Profiles to create parent menu)
 	if ( is_admin() ) {
 		\OptiPress\Admin_Interface::get_instance();
 		\OptiPress\Attachment_Meta_Box::get_instance();
 		\OptiPress\Attachment_Preview_Panel::get_instance();
+	}
+
+	// Initialize Size Profiles (thumbnail size management - after Admin_Interface)
+	\OptiPress\Size_Profiles::get_instance();
+
+	// Initialize Thumbnailer (custom thumbnail generation)
+	\OptiPress\Thumbnailer::get_instance();
+
+	// Initialize Batch Processor (admin-only)
+	if ( is_admin() ) {
+		\OptiPress\Batch_Processor::get_instance();
 	}
 
 	// Allow supported image formats for upload
