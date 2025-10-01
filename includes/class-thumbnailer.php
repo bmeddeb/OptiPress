@@ -131,16 +131,26 @@ final class Thumbnailer {
 		$metadata = is_array( $metadata ) ? $metadata : array();
 		$metadata['sizes'] = $metadata['sizes'] ?? array();
 
+		// Probe source preview once for base ext (for 'inherit')
+		$source_ext = strtolower( $ext ); // ext of preview file (webp/avif/jpg/png)
+
 		foreach ( $sizes as $name => $spec ) {
 			$w = max( 0, (int) ( $spec['width']  ?? 0 ) );
 			$h = max( 0, (int) ( $spec['height'] ?? 0 ) );
 			$crop = (bool) ( $spec['crop'] ?? false );
+			$fmt  = strtolower( (string) ( $spec['format'] ?? 'inherit' ) );
 
 			if ( 0 === $w && 0 === $h ) {
 				continue; // nothing to do
 			}
 
-			$dest_filename = sprintf( '%s-%s.%s', $filename, $this->suffix( $w, $h, $crop ), $ext );
+			// Decide output ext for this size
+			$target_ext = $source_ext;
+			if ( in_array( $fmt, array( 'avif', 'webp', 'jpeg', 'png' ), true ) ) {
+				$target_ext = ( 'jpeg' === $fmt ) ? 'jpg' : $fmt;
+			}
+
+			$dest_filename = sprintf( '%s-%s.%s', $filename, $this->suffix( $w, $h, $crop ), $target_ext );
 			$dest_abs      = trailingslashit( $dirname ) . $dest_filename;
 
 			try {
@@ -148,8 +158,8 @@ final class Thumbnailer {
 				$im->readImage( $src_abs );
 				$im->autoOrient();
 
-				// Set output format to match source preview
-				$im->setImageFormat( $ext );
+				// Set output format per size
+				$im->setImageFormat( $target_ext );
 				$im->setImageCompressionQuality( $quality );
 
 				$orig_w = $im->getImageWidth();
@@ -197,7 +207,7 @@ final class Thumbnailer {
 					'file'      => basename( $dest_abs ),
 					'width'     => $width,
 					'height'    => $height,
-					'mime-type' => $this->mime_from_ext( $ext ),
+					'mime-type' => $this->mime_from_ext( $target_ext ),
 				);
 
 			} catch ( \Throwable $e ) {
@@ -258,7 +268,7 @@ final class Thumbnailer {
 			case 'png':
 				return 'image/png';
 			default:
-				return 'image/' . $ext; // fallback
+				return 'image/' . strtolower( $ext ); // fallback
 		}
 	}
 }

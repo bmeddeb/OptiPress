@@ -143,11 +143,11 @@ final class Size_Profiles {
 	 */
 	private function default_profiles() {
 		return array(
-			array( 'name' => 'thumbnail',    'width' => 150,  'height' => 150,  'crop' => true ),
-			array( 'name' => 'medium',       'width' => 300,  'height' => 0,    'crop' => false ),
-			array( 'name' => 'medium_large', 'width' => 768,  'height' => 0,    'crop' => false ),
-			array( 'name' => 'large',        'width' => 1024, 'height' => 0,    'crop' => false ),
-			array( 'name' => 'xl',           'width' => 1600, 'height' => 0,    'crop' => false ),
+			array( 'name' => 'thumbnail',    'width' => 150,  'height' => 150,  'crop' => true,  'format' => 'inherit' ),
+			array( 'name' => 'medium',       'width' => 300,  'height' => 0,    'crop' => false, 'format' => 'inherit' ),
+			array( 'name' => 'medium_large', 'width' => 768,  'height' => 0,    'crop' => false, 'format' => 'inherit' ),
+			array( 'name' => 'large',        'width' => 1024, 'height' => 0,    'crop' => false, 'format' => 'inherit' ),
+			array( 'name' => 'xl',           'width' => 1600, 'height' => 0,    'crop' => false, 'format' => 'inherit' ),
 		);
 	}
 
@@ -168,10 +168,23 @@ final class Size_Profiles {
 			$w = max( 0, (int) ( $r['width']  ?? 0 ) );
 			$h = max( 0, (int) ( $r['height'] ?? 0 ) );
 			$crop = ! empty( $r['crop'] );
-			$out[ $name ] = array( 'width' => $w, 'height' => $h, 'crop' => $crop );
+			$fmt = $this->normalize_format( $r['format'] ?? 'inherit' );
+			$out[ $name ] = array( 'width' => $w, 'height' => $h, 'crop' => $crop, 'format' => $fmt );
 		}
 		// If empty or malformed, fall back to defaults coming from Thumbnailer
 		return ! empty( $out ) ? $out : $defaults;
+	}
+
+	/**
+	 * Normalize format value to allowed options
+	 *
+	 * @param string $fmt Format value.
+	 * @return string Normalized format.
+	 */
+	private function normalize_format( $fmt ) {
+		$fmt = strtolower( (string) $fmt );
+		$allowed = array( 'inherit', 'avif', 'webp', 'jpeg', 'png' );
+		return in_array( $fmt, $allowed, true ) ? $fmt : 'inherit';
 	}
 
 	/**
@@ -202,9 +215,13 @@ final class Size_Profiles {
 	public function render_profiles_field() {
 		$rows = get_option( self::OPTION, $this->default_profiles() );
 		echo '<table class="widefat fixed striped" id="optipress-size-profiles-table">';
-		echo '<thead><tr><th>' . esc_html__( 'Name', 'optipress' ) . '</th><th>' . esc_html__( 'Width', 'optipress' ) . '</th><th>' . esc_html__( 'Height', 'optipress' ) . '</th><th>' . esc_html__( 'Crop', 'optipress' ) . '</th><th></th></tr></thead>';
+		echo '<thead><tr><th>' . esc_html__( 'Name', 'optipress' ) . '</th><th>' . esc_html__( 'Width', 'optipress' ) . '</th><th>' . esc_html__( 'Height', 'optipress' ) . '</th><th>' . esc_html__( 'Crop', 'optipress' ) . '</th><th>' . esc_html__( 'Format', 'optipress' ) . '</th><th></th></tr></thead>';
 		echo '<tbody id="optipress-size-profiles-body">';
 		foreach ( $rows as $i => $r ) {
+			// Ensure old rows get default 'inherit' on first render
+			if ( ! isset( $r['format'] ) ) {
+				$r['format'] = 'inherit';
+			}
 			echo $this->row_html( $i, $r );
 		}
 		echo '</tbody>';
@@ -224,12 +241,27 @@ final class Size_Profiles {
 		$width  = isset( $row['width'] )  ? (int) $row['width']        : 0;
 		$height = isset( $row['height'] ) ? (int) $row['height']       : 0;
 		$crop   = ! empty( $row['crop'] ) ? 'checked'                  : '';
+		$format = isset( $row['format'] ) ? strtolower( (string) $row['format'] ) : 'inherit';
+		$opts   = array(
+			'inherit' => 'Inherit',
+			'avif'    => 'AVIF',
+			'webp'    => 'WebP',
+			'jpeg'    => 'JPEG',
+			'png'     => 'PNG',
+		);
 
 		$html  = '<tr class="optipress-size-row">';
 		$html .= '<td><input type="text" name="' . self::OPTION . '[' . $index . '][name]" value="' . $name . '" pattern="[a-z0-9_]{2,32}" required /></td>';
 		$html .= '<td><input type="number" name="' . self::OPTION . '[' . $index . '][width]" value="' . esc_attr( $width ) . '" min="0" step="1" /></td>';
 		$html .= '<td><input type="number" name="' . self::OPTION . '[' . $index . '][height]" value="' . esc_attr( $height ) . '" min="0" step="1" /></td>';
 		$html .= '<td><label><input type="checkbox" name="' . self::OPTION . '[' . $index . '][crop]" value="1" ' . $crop . ' /> ' . esc_html__( 'Crop', 'optipress' ) . '</label></td>';
+		// Format select
+		$html .= '<td><select name="' . self::OPTION . '[' . $index . '][format]">';
+		foreach ( $opts as $val => $label ) {
+			$sel = ( $format === $val ) ? 'selected' : '';
+			$html .= '<option value="' . esc_attr( $val ) . '" ' . $sel . '>' . esc_html( $label ) . '</option>';
+		}
+		$html .= '</select></td>';
 		$html .= '<td><button type="button" class="button-link delete-size">' . esc_html__( 'Delete', 'optipress' ) . '</button></td>';
 		$html .= '</tr>';
 		return $html;
@@ -242,7 +274,7 @@ final class Size_Profiles {
 	 */
 	private function row_template() {
 		// Placeholder {i} replaced in JS
-		return $this->row_html( '{i}', array( 'name' => '', 'width' => 0, 'height' => 0, 'crop' => false ) );
+		return $this->row_html( '{i}', array( 'name' => '', 'width' => 0, 'height' => 0, 'crop' => false, 'format' => 'inherit' ) );
 	}
 
 	/**
@@ -262,7 +294,8 @@ final class Size_Profiles {
 				$width  = max( 0, (int) ( $row['width']  ?? 0 ) );
 				$height = max( 0, (int) ( $row['height'] ?? 0 ) );
 				$crop   = ! empty( $row['crop'] ) ? 1 : 0;
-				$clean[] = array( 'name' => $name, 'width' => $width, 'height' => $height, 'crop' => $crop );
+				$fmt    = $this->normalize_format( $row['format'] ?? 'inherit' );
+				$clean[] = array( 'name' => $name, 'width' => $width, 'height' => $height, 'crop' => $crop, 'format' => $fmt );
 			}
 		}
 		// Deduplicate by name
