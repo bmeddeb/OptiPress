@@ -65,20 +65,30 @@ class Admin_Interface {
 	 * Add admin menu
 	 */
 	public function add_admin_menu() {
-		// Add top-level OptiPress menu (Image Optimization as first page)
+		// Add top-level OptiPress menu (Dashboard as first page)
 		add_menu_page(
-			__( 'OptiPress - Image Optimization', 'optipress' ),
+			__( 'OptiPress Dashboard', 'optipress' ),
 			__( 'OptiPress', 'optipress' ),
 			'manage_options',
-			'optipress-optimization',
-			array( $this, 'render_optimization_page' ),
+			'optipress',
+			array( $this, 'render_dashboard_page' ),
 			OPTIPRESS_PLUGIN_URL . 'assets/img/OptiPress-icon.png',
 			65
 		);
 
-		// Image Optimization submenu (same as parent to rename it)
+		// Dashboard submenu (same as parent to rename it)
 		add_submenu_page(
-			'optipress-optimization',
+			'optipress',
+			__( 'OptiPress Dashboard', 'optipress' ),
+			__( 'Dashboard', 'optipress' ),
+			'manage_options',
+			'optipress',
+			array( $this, 'render_dashboard_page' )
+		);
+
+		// Image Optimization submenu
+		add_submenu_page(
+			'optipress',
 			__( 'Image Optimization', 'optipress' ),
 			__( 'Image Optimization', 'optipress' ),
 			'manage_options',
@@ -88,7 +98,7 @@ class Admin_Interface {
 
 		// SVG Support submenu
 		add_submenu_page(
-			'optipress-optimization',
+			'optipress',
 			__( 'SVG Support', 'optipress' ),
 			__( 'SVG Support', 'optipress' ),
 			'manage_options',
@@ -98,7 +108,7 @@ class Admin_Interface {
 
 		// System Status submenu
 		add_submenu_page(
-			'optipress-optimization',
+			'optipress',
 			__( 'System Status', 'optipress' ),
 			__( 'System Status', 'optipress' ),
 			'manage_options',
@@ -210,7 +220,8 @@ class Admin_Interface {
 	public function enqueue_admin_assets( $hook ) {
 		// Settings page assets (all OptiPress admin pages)
 		$optipress_pages = array(
-			'toplevel_page_optipress-optimization',
+			'toplevel_page_optipress',
+			'optipress_page_optipress-optimization',
 			'optipress_page_optipress-svg',
 			'optipress_page_optipress-status',
 		);
@@ -334,6 +345,56 @@ class Admin_Interface {
 				);
 			}
 		}
+	}
+
+	/**
+	 * Render dashboard page
+	 */
+	public function render_dashboard_page() {
+		// Check user capabilities
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'optipress' ) );
+		}
+
+		?>
+		<div class="wrap optipress-dashboard">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+			<div class="optipress-dashboard-cards">
+				<div class="optipress-card">
+					<h2><?php esc_html_e( 'Image Optimization', 'optipress' ); ?></h2>
+					<p><?php esc_html_e( 'Configure image conversion settings, formats, and quality options.', 'optipress' ); ?></p>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-optimization' ) ); ?>" class="button button-primary">
+						<?php esc_html_e( 'Go to Settings', 'optipress' ); ?>
+					</a>
+				</div>
+
+				<div class="optipress-card">
+					<h2><?php esc_html_e( 'Thumbnails', 'optipress' ); ?></h2>
+					<p><?php esc_html_e( 'Manage thumbnail size profiles and image dimensions.', 'optipress' ); ?></p>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-thumbnails' ) ); ?>" class="button button-primary">
+						<?php esc_html_e( 'Manage Sizes', 'optipress' ); ?>
+					</a>
+				</div>
+
+				<div class="optipress-card">
+					<h2><?php esc_html_e( 'SVG Support', 'optipress' ); ?></h2>
+					<p><?php esc_html_e( 'Enable and configure secure SVG file uploads and sanitization.', 'optipress' ); ?></p>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-svg' ) ); ?>" class="button button-primary">
+						<?php esc_html_e( 'Configure SVG', 'optipress' ); ?>
+					</a>
+				</div>
+
+				<div class="optipress-card">
+					<h2><?php esc_html_e( 'System Status', 'optipress' ); ?></h2>
+					<p><?php esc_html_e( 'Check system capabilities and supported image formats.', 'optipress' ); ?></p>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=optipress-status' ) ); ?>" class="button button-primary">
+						<?php esc_html_e( 'View Status', 'optipress' ); ?>
+					</a>
+				</div>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**

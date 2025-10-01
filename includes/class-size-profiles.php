@@ -60,7 +60,7 @@ final class Size_Profiles {
 	public function add_submenu() {
 		// Add as submenu under OptiPress
 		add_submenu_page(
-			'optipress-optimization',
+			'optipress',
 			__( 'OptiPress Thumbnails', 'optipress' ),
 			__( 'Thumbnails', 'optipress' ),
 			'manage_options',
