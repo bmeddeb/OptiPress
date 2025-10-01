@@ -70,7 +70,7 @@ final class Advanced_Formats {
 			// TIFF/PSD (widely supported by Imagick)
 			'tif', 'tiff', 'psd',
 			// RAW formats (support depends on build/delegates, e.g., libraw)
-			'dng', 'arw', 'cr2', 'cr3', 'nef', 'orf', 'rw2', 'raf',
+			'dng', 'arw', 'cr2', 'cr3', 'nef', 'orf', 'rw2', 'raf', 'erf', 'mrw', 'pef', 'sr2', 'x3f', '3fr', 'fff', 'iiq', 'nrw', 'srw', 'rwl',
 			// JPEG 2000 family (requires OpenJPEG delegate)
 			'jp2', 'j2k', 'jpf', 'jpx', 'jpm',
 			// HEIF/HEIC (requires libheif delegate)

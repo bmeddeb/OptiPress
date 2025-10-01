@@ -186,7 +186,7 @@ function optipress_init() {
 	if ( is_admin() ) {
 		\OptiPress\Admin_Interface::get_instance();
 		\OptiPress\Attachment_Meta_Box::get_instance();
-		\OptiPress\Attachment_Preview_Panel::get_instance();
+		// Note: Attachment_Preview_Panel merged into Attachment_Meta_Box
 	}
 
 	// Initialize Size Profiles (responsive image size management - after Admin_Interface)

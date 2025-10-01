@@ -15,6 +15,7 @@ jQuery(function ($) {
       if ($previewBtn.prop('disabled')) return;
 
       const id = $previewBtn.data('attachment');
+      const $container = $('#optipress-meta-box-content');
       $previewBtn.prop('disabled', true).text('Rebuilding…');
       $status.show().text('Working…');
 
@@ -25,8 +26,14 @@ jQuery(function ($) {
       })
       .done(function (res) {
         if (res && res.success) {
-          $status.text(res.data.message + (res.data.preview_file ? (' → ' + res.data.preview_file) : ''));
-          $previewBtn.text('Rebuild Preview').prop('disabled', false);
+          $status.text(res.data.message);
+          // Refresh the entire meta box content
+          if (res.data.html) {
+            $container.html(res.data.html);
+          }
+          setTimeout(function() {
+            $status.fadeOut();
+          }, 3000);
         } else {
           $status.text((res && res.data && res.data.message) || 'Failed.');
           $previewBtn.text('Rebuild Preview').prop('disabled', false);
@@ -47,6 +54,7 @@ jQuery(function ($) {
       if ($thumbsBtn.prop('disabled')) return;
 
       const id = $thumbsBtn.data('attachment');
+      const $container = $('#optipress-meta-box-content');
       $thumbsBtn.prop('disabled', true).text('Rebuilding…');
       $status.show().text('Working…');
 
@@ -58,11 +66,13 @@ jQuery(function ($) {
       .done(function (res) {
         if (res && res.success) {
           $status.text(res.data.message);
-          $thumbsBtn.text('Rebuild Images').prop('disabled', false);
-          // Optionally reload the page to show new images
-          if (res.data.count > 0) {
-            setTimeout(function() { location.reload(); }, 1500);
+          // Refresh the entire meta box content
+          if (res.data.html) {
+            $container.html(res.data.html);
           }
+          setTimeout(function() {
+            $status.fadeOut();
+          }, 3000);
         } else {
           $status.text((res && res.data && res.data.message) || 'Failed.');
           $thumbsBtn.text('Rebuild Images').prop('disabled', false);
