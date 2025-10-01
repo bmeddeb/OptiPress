@@ -3,7 +3,7 @@
  * Plugin Name: OptiPress
  * Plugin URI: https://optipress.meddeb.me
  * Description: Image optimization and safe SVG handling for WordPress. Converts images to WebP/AVIF and enables secure SVG uploads.
- * Version:     0.4.9
+ * Version:     0.5.1
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: Ben Meddeb
@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants
-define( 'OPTIPRESS_VERSION', '0.4.9' );
+define( 'OPTIPRESS_VERSION', '0.5.1' );
 define( 'OPTIPRESS_PLUGIN_FILE', __FILE__ );
 define( 'OPTIPRESS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPTIPRESS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -103,6 +103,7 @@ register_deactivation_hook( __FILE__, 'optipress_deactivate' );
 function optipress_load_files() {
 	// Core classes
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-system-check.php';
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-mime-type-map.php';
 
 	// Image conversion engines
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/engines/interface-image-engine.php';
@@ -163,5 +164,34 @@ function optipress_init() {
 		\OptiPress\Admin_Interface::get_instance();
 		\OptiPress\Attachment_Meta_Box::get_instance();
 	}
+
+	// Allow supported image formats for upload
+	add_filter( 'upload_mimes', 'optipress_allow_supported_mimes' );
 }
 add_action( 'plugins_loaded', 'optipress_init' );
+
+/**
+ * Allow additional image MIME types that engines can convert
+ *
+ * Adds MIME types to WordPress upload whitelist based on available engine support.
+ * Only adds formats that can be converted to WebP/AVIF by available engines.
+ *
+ * @param array $mimes Existing MIME types.
+ * @return array Modified MIME types.
+ */
+function optipress_allow_supported_mimes( $mimes ) {
+	$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+	$supported_formats = $registry->get_all_supported_input_formats();
+
+	// Get upload mimes for supported formats
+	$new_mimes = \OptiPress\MIME_Type_Map::get_upload_mimes_for_supported( $supported_formats );
+
+	// Merge with existing mimes (don't override WordPress defaults)
+	foreach ( $new_mimes as $ext => $mime ) {
+		if ( ! isset( $mimes[ $ext ] ) ) {
+			$mimes[ $ext ] = $mime;
+		}
+	}
+
+	return $mimes;
+}
