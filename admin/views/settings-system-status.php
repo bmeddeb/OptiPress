@@ -348,6 +348,46 @@ $options = get_option( 'optipress_options', array() );
 		</tbody>
 	</table>
 
+	<!-- Animation Support -->
+	<h3><?php esc_html_e( 'Animation Support', 'optipress' ); ?></h3>
+	<table class="widefat striped">
+		<tbody>
+			<tr>
+				<td><strong><?php esc_html_e( 'Animated GIF Detection', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( ! empty( $capabilities['animation']['detection']['gif'] ) ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'Available', 'optipress' ); ?></span>
+					<?php else : ?>
+						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'Unavailable', 'optipress' ); ?></span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<td><strong><?php esc_html_e( 'Animated WebP Detection', 'optipress' ); ?></strong></td>
+				<td>
+					<?php if ( ! empty( $capabilities['animation']['detection']['webp'] ) ) : ?>
+						<span class="optipress-status-success">✓ <?php esc_html_e( 'Available', 'optipress' ); ?></span>
+					<?php else : ?>
+						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'Unavailable', 'optipress' ); ?></span>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<td><strong><?php esc_html_e( 'Behavior', 'optipress' ); ?></strong></td>
+				<td>
+					<?php
+						$behavior = isset( $capabilities['animation']['behavior'] ) ? $capabilities['animation']['behavior'] : 'skip';
+						if ( 'skip' === $behavior ) {
+							echo '<span class="optipress-status-info">' . esc_html__( 'Animated images are skipped from conversion to preserve animation.', 'optipress' ) . '</span>';
+						} else {
+							echo esc_html( ucfirst( $behavior ) );
+						}
+					?>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
 	<!-- Current Configuration -->
 	<h3><?php esc_html_e( 'Current Configuration', 'optipress' ); ?></h3>
 	<table class="widefat striped">

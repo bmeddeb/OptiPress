@@ -57,6 +57,13 @@ class Image_Converter {
 	private $errors = array();
 
 	/**
+	 * Static cache for file existence checks
+	 *
+	 * @var array
+	 */
+	private static $file_cache = array();
+
+	/**
 	 * Get singleton instance
 	 *
 	 * @return Image_Converter
@@ -355,17 +362,68 @@ class Image_Converter {
 	 * @param string $file_path Path to file.
 	 * @return bool Whether file should be converted.
 	 */
-	private function should_convert_file( $file_path ) {
-		$image_info = @getimagesize( $file_path );
+private function should_convert_file( $file_path ) {
+        $image_info = @getimagesize( $file_path );
 
-		if ( false === $image_info ) {
-			return false;
-		}
+        if ( false === $image_info ) {
+            return false;
+        }
 
-		// Get supported formats from available engines
-		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
-		return $registry->is_mime_type_supported( $image_info['mime'] );
-	}
+        $mime_type = $image_info['mime'];
+
+        // Skip animated images (GIF/WebP) to preserve animation
+        if ( $this->is_animated_image( $file_path, $mime_type ) ) {
+            return false;
+        }
+
+        // Get supported formats from available engines
+        $registry = \OptiPress\Engines\Engine_Registry::get_instance();
+        return $registry->is_mime_type_supported( $mime_type );
+}
+
+    /**
+     * Detect if image is animated (GIF/WebP)
+     *
+     * @param string $file_path
+     * @param string $mime_type
+     * @return bool
+     */
+    private function is_animated_image( $file_path, $mime_type ) {
+        $mime_type = strtolower( (string) $mime_type );
+
+        // Prefer Imagick when available
+        if ( class_exists( '\\Imagick' ) ) {
+            try {
+                $imagick = new \Imagick();
+                if ( @$imagick->readImage( $file_path ) ) {
+                    $frames = $imagick->getNumberImages();
+                    $imagick->clear();
+                    $imagick->destroy();
+                    if ( $frames > 1 ) {
+                        return true;
+                    }
+                }
+            } catch ( \Exception $e ) {
+                // Fall-through to lightweight checks
+            }
+        }
+
+        // Lightweight signatures
+        if ( 'image/gif' === $mime_type ) {
+            $chunk = @file_get_contents( $file_path, false, null, 0, 65536 );
+            if ( false !== $chunk && false !== strpos( $chunk, 'NETSCAPE2.0' ) ) {
+                return true;
+            }
+        }
+        if ( 'image/webp' === $mime_type ) {
+            $chunk = @file_get_contents( $file_path, false, null, 0, 65536 );
+            if ( false !== $chunk && ( false !== strpos( $chunk, 'ANIM' ) || false !== strpos( $chunk, 'ANMF' ) ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 	/**
 	 * Check if auto-convert is enabled
@@ -540,13 +598,9 @@ class Image_Converter {
 			return $url;
 		}
 
-		// Generate converted URL
+		// Generate converted URL and verify file exists (cached)
 		$converted_url = $this->get_converted_url( $url, $format );
-
-		// Check if converted file exists
-		$converted_path = $this->url_to_path( $converted_url );
-
-		if ( $converted_path && file_exists( $converted_path ) ) {
+		if ( $this->file_exists_from_url( $converted_url ) ) {
 			return $converted_url;
 		}
 
@@ -576,10 +630,8 @@ class Image_Converter {
 
 		// Modify URL (index 0)
 		if ( isset( $image[0] ) ) {
-			$converted_url  = $this->get_converted_url( $image[0], $format );
-			$converted_path = $this->url_to_path( $converted_url );
-
-			if ( $converted_path && file_exists( $converted_path ) ) {
+			$converted_url = $this->get_converted_url( $image[0], $format );
+			if ( $this->file_exists_from_url( $converted_url ) ) {
 				$image[0] = $converted_url;
 			}
 		}
@@ -612,10 +664,8 @@ class Image_Converter {
 		// Convert each source URL
 		foreach ( $sources as $width => $source ) {
 			if ( isset( $source['url'] ) ) {
-				$converted_url  = $this->get_converted_url( $source['url'], $format );
-				$converted_path = $this->url_to_path( $converted_url );
-
-				if ( $converted_path && file_exists( $converted_path ) ) {
+				$converted_url = $this->get_converted_url( $source['url'], $format );
+				if ( $this->file_exists_from_url( $converted_url ) ) {
 					$sources[ $width ]['url'] = $converted_url;
 				}
 			}
@@ -632,8 +682,46 @@ class Image_Converter {
 	 * @return string Converted URL.
 	 */
 	private function get_converted_url( $url, $format ) {
-		// Replace extension
-		return preg_replace( '/\.(jpg|jpeg|png)$/i', '.' . $format, $url );
+		// Parse URL and replace only the path extension, preserving query/fragment
+		$parts = wp_parse_url( $url );
+		if ( false === $parts || empty( $parts['path'] ) ) {
+			return $url;
+		}
+
+		$path = $parts['path'];
+		$new_path = preg_replace( '/\.(jpg|jpeg|png)$/i', '.' . $format, $path );
+		if ( $new_path === $path ) {
+			return $url; // nothing to change
+		}
+		$parts['path'] = $new_path;
+
+		// Rebuild
+		$rebuilt = '';
+		if ( ! empty( $parts['scheme'] ) ) {
+			$rebuilt .= $parts['scheme'] . '://';
+		}
+		if ( ! empty( $parts['user'] ) ) {
+			$rebuilt .= $parts['user'];
+			if ( ! empty( $parts['pass'] ) ) {
+				$rebuilt .= ':' . $parts['pass'];
+			}
+			$rebuilt .= '@';
+		}
+		if ( ! empty( $parts['host'] ) ) {
+			$rebuilt .= $parts['host'];
+		}
+		if ( ! empty( $parts['port'] ) ) {
+			$rebuilt .= ':' . $parts['port'];
+		}
+		$rebuilt .= $parts['path'];
+		if ( ! empty( $parts['query'] ) ) {
+			$rebuilt .= '?' . $parts['query'];
+		}
+		if ( ! empty( $parts['fragment'] ) ) {
+			$rebuilt .= '#' . $parts['fragment'];
+		}
+
+		return $rebuilt;
 	}
 
 	/**
@@ -654,6 +742,22 @@ class Image_Converter {
 		$path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $url );
 
 		return $path;
+	}
+
+	/**
+	 * Cached existence check from URL within uploads.
+	 *
+	 * @param string $url URL to check.
+	 * @return bool
+	 */
+	private function file_exists_from_url( $url ) {
+		if ( isset( self::$file_cache[ $url ] ) ) {
+			return self::$file_cache[ $url ];
+		}
+		$path   = $this->url_to_path( $url );
+		$exists = $path && file_exists( $path );
+		self::$file_cache[ $url ] = $exists;
+		return $exists;
 	}
 
 	/**

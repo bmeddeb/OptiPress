@@ -538,10 +538,48 @@ class Content_Filter {
 	 * @param string $format Target format.
 	 * @return string Optimized URL.
 	 */
-	private function get_optimized_url( $url, $format ) {
-		$pathinfo = pathinfo( $url );
-		return $pathinfo['dirname'] . '/' . $pathinfo['filename'] . '.' . $format;
-	}
+    private function get_optimized_url( $url, $format ) {
+        // Parse URL to safely replace extension in path while preserving query/fragment
+        $parts = wp_parse_url( $url );
+        if ( false === $parts || empty( $parts['path'] ) ) {
+            return $url;
+        }
+
+        $path = $parts['path'];
+        $new_path = preg_replace( '/\.(jpg|jpeg|png)$/i', '.' . $format, $path );
+        if ( $new_path === $path ) {
+            return $url; // nothing to change
+        }
+        $parts['path'] = $new_path;
+
+        // Rebuild URL
+        $rebuilt = '';
+        if ( ! empty( $parts['scheme'] ) ) {
+            $rebuilt .= $parts['scheme'] . '://';
+        }
+        if ( ! empty( $parts['user'] ) ) {
+            $rebuilt .= $parts['user'];
+            if ( ! empty( $parts['pass'] ) ) {
+                $rebuilt .= ':' . $parts['pass'];
+            }
+            $rebuilt .= '@';
+        }
+        if ( ! empty( $parts['host'] ) ) {
+            $rebuilt .= $parts['host'];
+        }
+        if ( ! empty( $parts['port'] ) ) {
+            $rebuilt .= ':' . $parts['port'];
+        }
+        $rebuilt .= $parts['path'];
+        if ( ! empty( $parts['query'] ) ) {
+            $rebuilt .= '?' . $parts['query'];
+        }
+        if ( ! empty( $parts['fragment'] ) ) {
+            $rebuilt .= '#' . $parts['fragment'];
+        }
+
+        return $rebuilt;
+    }
 
 	/**
 	 * Check if file exists from URL with static caching

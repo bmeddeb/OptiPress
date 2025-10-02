@@ -381,18 +381,19 @@ class System_Check {
 	 *     @type array  $errors           Array of error messages.
 	 * }
 	 */
-	public function get_capabilities( $force_refresh = false ) {
+    public function get_capabilities( $force_refresh = false ) {
 		// Return cached capabilities if available and not forcing refresh
 		if ( null !== $this->capabilities && ! $force_refresh ) {
 			return $this->capabilities;
 		}
 
-		$php     = $this->check_php_version();
-		$gd      = $this->check_gd_library();
-		$imagick = $this->check_imagick_extension();
-		$raw     = $this->check_raw_format_support();
-		$jp2     = $this->check_jp2_format_support();
-		$heif    = $this->check_heif_format_support();
+        $php       = $this->check_php_version();
+        $gd        = $this->check_gd_library();
+        $imagick   = $this->check_imagick_extension();
+        $raw       = $this->check_raw_format_support();
+        $jp2       = $this->check_jp2_format_support();
+        $heif      = $this->check_heif_format_support();
+        $animation = $this->check_animation_support();
 
 		// Determine available engines
 		$available_engines = array();
@@ -456,18 +457,19 @@ class System_Check {
 		}
 
 		// Cache the results
-		$this->capabilities = array(
-			'php'               => $php,
-			'gd'                => $gd,
-			'imagick'           => $imagick,
-			'raw'               => $raw,
-			'jp2'               => $jp2,
-			'heif'              => $heif,
-			'available_engines' => $available_engines,
-			'formats'           => $formats,
-			'warnings'          => $warnings,
-			'errors'            => $errors,
-		);
+        $this->capabilities = array(
+            'php'               => $php,
+            'gd'                => $gd,
+            'imagick'           => $imagick,
+            'raw'               => $raw,
+            'jp2'               => $jp2,
+            'heif'              => $heif,
+            'animation'         => $animation,
+            'available_engines' => $available_engines,
+            'formats'           => $formats,
+            'warnings'          => $warnings,
+            'errors'            => $errors,
+        );
 
 		return $this->capabilities;
 	}
@@ -556,8 +558,43 @@ class System_Check {
 	 *
 	 * @return bool Whether system meets minimum requirements.
 	 */
-	public function meets_minimum_requirements() {
-		$capabilities = $this->get_capabilities();
-		return empty( $capabilities['errors'] );
-	}
+    public function meets_minimum_requirements() {
+        $capabilities = $this->get_capabilities();
+        return empty( $capabilities['errors'] );
+    }
+
+    /**
+     * Check animation detection/support status
+     *
+     * Returns information about detecting animated GIF/WebP and current behavior.
+     *
+     * @return array {
+     *   @type array $detection { 'gif' => bool, 'webp' => bool }
+     *   @type string $behavior  Current behavior (e.g., 'skip')
+     * }
+     */
+    public function check_animation_support() {
+        $gif_detection  = false;
+        $webp_detection = false;
+
+        // If Imagick is available, it can detect multi-frame images
+        if ( class_exists( 'Imagick' ) ) {
+            $gif_detection  = true;
+            // Animated WebP detection depends on build, but frame iteration works where supported
+            $webp_detection = true;
+        } else {
+            // Fallback heuristics exist in converter (signature checks)
+            $gif_detection  = true;  // NETSCAPE2.0 marker heuristic
+            $webp_detection = true;  // ANIM/ANMF chunk heuristic
+        }
+
+        return array(
+            'detection' => array(
+                'gif'  => (bool) $gif_detection,
+                'webp' => (bool) $webp_detection,
+            ),
+            // Current plugin behavior: skip converting animated images to preserve animation
+            'behavior'  => 'skip',
+        );
+    }
 }

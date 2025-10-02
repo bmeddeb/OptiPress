@@ -66,12 +66,28 @@ class OptiPress_Organizer_File_System {
 			}
 
 			// Add .htaccess for protection (will be served via PHP handler)
-			$htaccess_content = "# OptiPress Library Organizer\n";
+			$htaccess_content  = "# OptiPress Library Organizer\n";
 			$htaccess_content .= "# Files are served via secure download handler\n";
 			$htaccess_content .= "Order deny,allow\n";
 			$htaccess_content .= "Deny from all\n";
 
-			file_put_contents( $item_dir . '.htaccess', $htaccess_content );
+			$htaccess_written = @file_put_contents( $item_dir . '.htaccess', $htaccess_content );
+			if ( false === $htaccess_written ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					error_log( '[OptiPress Organizer] Failed to write .htaccess in ' . $item_dir );
+				}
+			}
+
+			// Add index.php to prevent directory listing on non-Apache environments
+			$index_path = $item_dir . 'index.php';
+			if ( ! file_exists( $index_path ) ) {
+				$index_written = @file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
+				if ( false === $index_written ) {
+					if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+						error_log( '[OptiPress Organizer] Failed to write index.php in ' . $item_dir );
+					}
+				}
+			}
 		}
 
 		return $item_dir;
