@@ -328,21 +328,21 @@ class Admin_Interface {
 				true
 			);
 
-		// Get supported formats for JavaScript
-		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
-		$supported_formats = $registry->get_all_supported_input_formats();
+			// Get supported formats for JavaScript
+			$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+			$supported_formats = $registry->get_all_supported_input_formats();
 
-		// Build extension to MIME type map dynamically
-		$extension_map = \OptiPress\MIME_Type_Map::get_extension_to_mime_map( $supported_formats );
+			// Build extension to MIME type map dynamically
+			$extension_map = \OptiPress\MIME_Type_Map::get_extension_to_mime_map( $supported_formats );
 
 			// Localize upload script
 			wp_localize_script(
 				'optipress-upload-progress',
 				'optipressUpload',
 				array(
-				'nonce' => wp_create_nonce( 'optipress_upload' ),
-				'supportedMimeTypes' => $supported_formats,
-				'extensionMap' => $extension_map,
+					'nonce' => wp_create_nonce( 'optipress_upload' ),
+					'supportedMimeTypes' => $supported_formats,
+					'extensionMap' => $extension_map,
 				)
 			);
 

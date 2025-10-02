@@ -60,21 +60,21 @@
 		addSavingsCounter();
 		ensureUploadPanel();
 
-		// Extend the wp.Uploader to show conversion status
-		var originalSuccess = wp.Uploader.prototype.success;
-		wp.Uploader.prototype.success = function (attachment) {
-			originalSuccess.apply(this, arguments);
-			if (DEBUG) log('OptiPress uploader success:', attachment);
-			// Track this attachment for status polling
-			if (attachment && attachment.id) {
-				trackAttachment(attachment.id, attachment);
-			}
-		};
-
-		// Also hook into Backbone uploader for media modal
+		// Hook into Backbone uploader for media modal - safer than overriding prototype
 		if (wp.Uploader.queue) {
 			wp.Uploader.queue.on('add', function (attachment) {
 				if (attachment && attachment.id) {
+					if (DEBUG) log('OptiPress uploader queue add:', attachment);
+					trackAttachment(attachment.id, attachment);
+				}
+			});
+		}
+
+		// Also listen for successful uploads via the queue
+		if (wp.Uploader.queue) {
+			wp.Uploader.queue.on('upload:success', function (attachment) {
+				if (attachment && attachment.id) {
+					if (DEBUG) log('OptiPress uploader success:', attachment);
 					trackAttachment(attachment.id, attachment);
 				}
 			});
