@@ -151,20 +151,19 @@ class Admin_Interface {
 		$existing = get_option( 'optipress_options', array() );
 
 		// Start with existing values
-		$sanitized = wp_parse_args( $existing, array(
-			'engine'                      => 'auto',
-			'format'                      => 'webp',
-			'quality'                     => 85,
-			'auto_convert'                => true,
-			'keep_originals'              => true,
-			'svg_enabled'                 => false,
-			'svg_preview_enabled'         => false,
-			'enable_content_filter'       => true,
-			'use_picture_element'         => false,
-			'delivery_method'             => 'htaccess',
-			'organizer_enabled'           => false,
-			'organizer_default_collection' => 0,
-		) );
+			$sanitized = wp_parse_args( $existing, array(
+				'engine'                      => 'auto',
+				'format'                      => 'webp',
+				'quality'                     => 85,
+				'auto_convert'                => true,
+				'svg_enabled'                 => false,
+				'svg_preview_enabled'         => false,
+				'enable_content_filter'       => true,
+				'use_picture_element'         => false,
+				'delivery_method'             => 'htaccess',
+				'organizer_enabled'           => false,
+				'organizer_default_collection' => 0,
+			) );
 
 		// Engine (only update if present in input)
 		if ( isset( $input['engine'] ) ) {
@@ -193,9 +192,7 @@ class Admin_Interface {
 		if ( isset( $input['auto_convert'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-optimization' ) !== false ) ) {
 			$sanitized['auto_convert'] = isset( $input['auto_convert'] ) && $input['auto_convert'];
 		}
-		if ( isset( $input['keep_originals'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-optimization' ) !== false ) ) {
-			$sanitized['keep_originals'] = isset( $input['keep_originals'] ) && $input['keep_originals'];
-		}
+			// Keep Originals setting removed: originals are always preserved
 
 		// SVG page fields
 		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-svg' ) !== false ) ) {

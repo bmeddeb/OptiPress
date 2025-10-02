@@ -19,7 +19,7 @@ $engine         = isset( $options['engine'] ) ? $options['engine'] : 'auto';
 $format         = isset( $options['format'] ) ? $options['format'] : 'webp';
 $quality        = isset( $options['quality'] ) ? $options['quality'] : 85;
 $auto_convert   = isset( $options['auto_convert'] ) ? $options['auto_convert'] : true;
-$keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals'] : true;
+$keep_originals = true; // Originals are always preserved
 
 ?>
 
@@ -115,24 +115,7 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 			</td>
 		</tr>
 
-		<!-- Keep Originals Toggle -->
-		<tr>
-			<th scope="row">
-				<?php esc_html_e( 'Keep Original Files', 'optipress' ); ?>
-			</th>
-			<td>
-				<fieldset>
-					<label>
-						<input type="checkbox" name="optipress_options[keep_originals]"
-							value="1" <?php checked( $keep_originals ); ?> />
-						<?php esc_html_e( 'Keep original files after conversion', 'optipress' ); ?>
-					</label>
-					<p class="description">
-						<?php esc_html_e( 'Recommended: Keep originals to allow reverting conversions. Warning: Disabling this will permanently delete original files.', 'optipress' ); ?>
-					</p>
-				</fieldset>
-			</td>
-		</tr>
+        <!-- Keep Originals Toggle removed: originals are always preserved -->
 	</table>
 </div>
 
@@ -233,15 +216,9 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 			<?php esc_html_e( 'Start Bulk Optimization', 'optipress' ); ?>
 		</button>
 
-		<?php if ( $keep_originals ) : ?>
 		<button type="button" id="optipress-revert-batch" class="button button-secondary" disabled style="margin-left: 10px;">
 			<?php esc_html_e( 'Revert All to Originals', 'optipress' ); ?>
 		</button>
-		<?php else : ?>
-		<p class="description" style="margin-top: 10px;">
-			<em><?php esc_html_e( 'Note: Enable "Keep Original Files" to enable revert functionality.', 'optipress' ); ?></em>
-		</p>
-		<?php endif; ?>
 	</div>
 
 	<div class="optipress-batch-progress-container" style="margin-top: 20px;">
@@ -251,13 +228,11 @@ $keep_originals = isset( $options['keep_originals'] ) ? $options['keep_originals
 		<div id="optipress-batch-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
 		<div id="optipress-batch-result" class="optipress-result-area" style="display: none; margin-top: 10px;"></div>
 
-		<?php if ( $keep_originals ) : ?>
 		<div id="optipress-revert-progress" class="optipress-progress-bar" style="display: none; margin-top: 20px;">
 			<div class="optipress-progress-fill"></div>
 		</div>
 		<div id="optipress-revert-status" class="optipress-status-text" style="display: none; margin-top: 10px;"></div>
 		<div id="optipress-revert-result" class="optipress-result-area" style="display: none; margin-top: 10px;"></div>
-		<?php endif; ?>
 	</div>
 
 	<div class="notice notice-info inline" style="margin-top: 20px;">

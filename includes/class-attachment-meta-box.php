@@ -93,9 +93,18 @@ class Attachment_Meta_Box {
 		$meta = wp_get_attachment_metadata( $attachment_id );
 		$current_file = get_attached_file( $attachment_id, true );
 		$upload_dir = wp_get_upload_dir();
+
+		// Determine whether the original is preserved
 		$original_rel = is_array( $meta ) && isset( $meta['original_file'] ) ? $meta['original_file'] : null;
 		$original_abs = $original_rel ? trailingslashit( $upload_dir['basedir'] ) . ltrim( $original_rel, '/\\' ) : null;
-		$has_original = $original_abs && file_exists( $original_abs );
+
+		// For advanced formats, Advanced_Formats stores original_file; for standard images, the attached file is the original
+		$has_original = false;
+		if ( $original_abs ) {
+			$has_original = file_exists( $original_abs );
+		} else {
+			$has_original = $current_file && file_exists( $current_file );
+		}
 
 		// Detect if this is an advanced format
 		$is_advanced = $this->is_advanced_format( $current_file );
@@ -344,7 +353,7 @@ class Attachment_Meta_Box {
 				<?php if ( ! $has_original ) : ?>
 					<p class="description" style="margin-top: 10px; color: #d63638;">
 						<span class="dashicons dashicons-warning" style="vertical-align: middle;"></span>
-						<?php esc_html_e( 'Original file not preserved. Cannot revert.', 'optipress' ); ?>
+						<?php esc_html_e( 'Original file was not found on disk.', 'optipress' ); ?>
 					</p>
 				<?php endif; ?>
 			</div>

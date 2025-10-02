@@ -421,11 +421,7 @@ $options = get_option( 'optipress_options', array() );
 			<tr>
 				<td><strong><?php esc_html_e( 'Keep Originals', 'optipress' ); ?></strong></td>
 				<td>
-					<?php if ( isset( $options['keep_originals'] ) && $options['keep_originals'] ) : ?>
-						<span class="optipress-status-success">✓ <?php esc_html_e( 'Enabled', 'optipress' ); ?></span>
-					<?php else : ?>
-						<span class="optipress-status-warning">⚠ <?php esc_html_e( 'Disabled', 'optipress' ); ?></span>
-					<?php endif; ?>
+					<span class="optipress-status-success">✓ <?php esc_html_e( 'Always Enabled', 'optipress' ); ?></span>
 				</td>
 			</tr>
 			<tr>

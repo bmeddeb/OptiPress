@@ -246,10 +246,7 @@ class Image_Converter {
 			// Track for summary notice
 			$this->track_conversion_for_summary( $attachment_id, $metadata );
 
-			// Handle "Keep Originals" setting
-			if ( ! $this->should_keep_originals() ) {
-				$this->delete_original_files( $file_path, $metadata );
-			}
+			// Always keep originals; do not delete source files after conversion.
 		} else {
 			// Conversion failed for all images
 			delete_post_meta( $attachment_id, '_optipress_converting' );
