@@ -51,7 +51,7 @@ final class Thumbnailer {
 
 		/**
 		 * Stop WP from creating its own sizes.
-		 * You can make this conditional if you only want to take over for certain mimes/exts.
+		 * Now with improved logic to avoid interfering with media library operations.
 		 */
 		$disable_core = apply_filters( 'optipress_thumbnailer_disable_core', true );
 		if ( $disable_core ) {
@@ -65,12 +65,40 @@ final class Thumbnailer {
 	/**
 	 * Disable core WordPress thumbnail generation
 	 *
+	 * Only disable for images that OptiPress can handle and when not in media library operations.
+	 *
 	 * @param array $sizes        Array of image sizes.
 	 * @param array $metadata     Image metadata.
 	 * @param int   $attachment_id Attachment ID.
-	 * @return array Empty array to prevent core generation.
+	 * @return array Modified sizes array.
 	 */
 	public function disable_core_sizes( $sizes, $metadata, $attachment_id ) {
+		// Don't interfere with media library operations (delete, etc.)
+		if ( is_admin() && isset( $_REQUEST['action'] ) ) {
+			$admin_actions = array( 'delete', 'delete-selected', 'trash', 'untrash' );
+			if ( in_array( $_REQUEST['action'], $admin_actions, true ) ) {
+				return $sizes; // Let WordPress handle these operations normally
+			}
+		}
+
+		// Only disable for supported image types
+		$mime_type = get_post_mime_type( $attachment_id );
+		$registry = \OptiPress\Engines\Engine_Registry::get_instance();
+
+		if ( ! $registry->is_mime_type_supported( $mime_type ) ) {
+			return $sizes; // Let WordPress handle unsupported types
+		}
+
+		// Check if this is an advanced format that needs special handling
+		$advanced_formats = array( 'image/tiff', 'image/vnd.adobe.photoshop', 'image/x-canon-cr2', 'image/x-canon-cr3' );
+		$is_advanced = in_array( $mime_type, $advanced_formats, true );
+
+		// For advanced formats, let WordPress generate basic thumbnails but we'll override them
+		if ( $is_advanced ) {
+			return $sizes; // Let WordPress generate basic thumbnails
+		}
+
+		// For regular supported formats (JPEG, PNG, WebP), disable core generation
 		// Returning [] prevents core from generating thumbnails.
 		return array();
 	}
