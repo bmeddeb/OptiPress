@@ -102,6 +102,13 @@ class OptiPress_Organizer {
 	public $rest_api;
 
 	/**
+	 * Upload handler.
+	 *
+	 * @var OptiPress_Organizer_Upload_Handler
+	 */
+	public $upload_handler;
+
+	/**
 	 * Get singleton instance.
 	 *
 	 * @return OptiPress_Organizer
@@ -140,6 +147,7 @@ class OptiPress_Organizer {
 		require_once $organizer_path . 'class-access-control.php';
 		require_once $organizer_path . 'class-download-handler.php';
 		require_once $organizer_path . 'class-metadata-extractor.php';
+		require_once $organizer_path . 'class-upload-handler.php';
 		require_once $organizer_path . 'class-admin-ui.php';
 		require_once $organizer_path . 'class-rest-api.php';
 	}
@@ -161,9 +169,10 @@ class OptiPress_Organizer {
 		$this->collections = new OptiPress_Organizer_Collection_Manager();
 
 		// Features
-		$this->access   = new OptiPress_Organizer_Access_Control();
-		$this->downloads = new OptiPress_Organizer_Download_Handler();
-		$this->metadata = new OptiPress_Organizer_Metadata_Extractor();
+		$this->access        = new OptiPress_Organizer_Access_Control();
+		$this->downloads     = new OptiPress_Organizer_Download_Handler();
+		$this->metadata      = new OptiPress_Organizer_Metadata_Extractor();
+		$this->upload_handler = new OptiPress_Organizer_Upload_Handler();
 
 		// UI & API
 		if ( is_admin() ) {
@@ -198,6 +207,15 @@ class OptiPress_Organizer {
 	 */
 	public function get_collection_manager() {
 		return $this->collections;
+	}
+
+	/**
+	 * Get upload handler.
+	 *
+	 * @return OptiPress_Organizer_Upload_Handler
+	 */
+	public function get_upload_handler() {
+		return $this->upload_handler;
 	}
 }
 

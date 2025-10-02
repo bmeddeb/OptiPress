@@ -106,6 +106,16 @@ class Admin_Interface {
 			array( $this, 'render_svg_page' )
 		);
 
+		// Library Organizer submenu
+		add_submenu_page(
+			'optipress',
+			__( 'Library Organizer', 'optipress' ),
+			__( 'Library Organizer', 'optipress' ),
+			'manage_options',
+			'optipress-organizer',
+			array( $this, 'render_organizer_page' )
+		);
+
 		// System Status submenu
 		add_submenu_page(
 			'optipress',
@@ -142,16 +152,18 @@ class Admin_Interface {
 
 		// Start with existing values
 		$sanitized = wp_parse_args( $existing, array(
-			'engine'                => 'auto',
-			'format'                => 'webp',
-			'quality'               => 85,
-			'auto_convert'          => true,
-			'keep_originals'        => true,
-			'svg_enabled'           => false,
-			'svg_preview_enabled'   => false,
-			'enable_content_filter' => true,
-			'use_picture_element'   => false,
-			'delivery_method'       => 'htaccess',
+			'engine'                      => 'auto',
+			'format'                      => 'webp',
+			'quality'                     => 85,
+			'auto_convert'                => true,
+			'keep_originals'              => true,
+			'svg_enabled'                 => false,
+			'svg_preview_enabled'         => false,
+			'enable_content_filter'       => true,
+			'use_picture_element'         => false,
+			'delivery_method'             => 'htaccess',
+			'organizer_enabled'           => false,
+			'organizer_default_collection' => 0,
 		) );
 
 		// Engine (only update if present in input)
@@ -209,6 +221,16 @@ class Admin_Interface {
 				: $sanitized['delivery_method'];
 		}
 
+		// Organizer page fields
+		if ( isset( $input['organizer_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-organizer' ) !== false ) ) {
+			$sanitized['organizer_enabled'] = isset( $input['organizer_enabled'] ) && $input['organizer_enabled'];
+		}
+
+		// Default collection (only update if present in input)
+		if ( isset( $input['organizer_default_collection'] ) ) {
+			$sanitized['organizer_default_collection'] = absint( $input['organizer_default_collection'] );
+		}
+
 		return $sanitized;
 	}
 
@@ -223,6 +245,7 @@ class Admin_Interface {
 			'toplevel_page_optipress',
 			'optipress_page_optipress-optimization',
 			'optipress_page_optipress-svg',
+			'optipress_page_optipress-organizer',
 			'optipress_page_optipress-status',
 		);
 
@@ -448,6 +471,35 @@ class Admin_Interface {
 				<?php
 				settings_fields( 'optipress_options' );
 				$this->render_svg_tab( $options );
+				submit_button();
+				?>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render organizer page
+	 */
+	public function render_organizer_page() {
+		// Check user capabilities
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'optipress' ) );
+		}
+
+		// Get current options
+		$options = get_option( 'optipress_options', array() );
+
+		?>
+		<div class="wrap optipress-settings">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+			<?php settings_errors( 'optipress_messages' ); ?>
+
+			<form method="post" action="options.php">
+				<?php
+				settings_fields( 'optipress_options' );
+				require_once OPTIPRESS_PLUGIN_DIR . 'admin/views/settings-organizer.php';
 				submit_button();
 				?>
 			</form>
