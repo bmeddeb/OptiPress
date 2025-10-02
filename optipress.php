@@ -78,6 +78,11 @@ function optipress_activate() {
 
 	add_option( 'optipress_options', $default_options );
 
+	// Create organizer database tables
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/organizer/class-database.php';
+	$database = new OptiPress_Organizer_Database();
+	$database->create_tables();
+
 	// Flush rewrite rules
 	flush_rewrite_rules();
 }
@@ -143,6 +148,9 @@ function optipress_load_files() {
 
 	// WP-CLI commands
 	require_once OPTIPRESS_PLUGIN_DIR . 'includes/class-cli.php';
+
+	// Library Organizer (Phase 1 - Foundation)
+	require_once OPTIPRESS_PLUGIN_DIR . 'includes/organizer/class-organizer.php';
 }
 
 /**
@@ -199,6 +207,9 @@ function optipress_init() {
 	if ( is_admin() ) {
 		\OptiPress\Batch_Processor::get_instance();
 	}
+
+	// Initialize Library Organizer
+	optipress_organizer();
 
 	// Allow supported image formats for upload
 	add_filter( 'upload_mimes', 'optipress_allow_supported_mimes' );

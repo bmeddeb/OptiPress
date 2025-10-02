@@ -19,6 +19,7 @@ This document outlines the phased approach to implementing the OptiPress Library
 - Create core CPTs and taxonomies
 - Build basic CRUD operations
 - Implement file organization on disk
+- update uninstall.php for the new scheme
 
 ### Deliverables
 
