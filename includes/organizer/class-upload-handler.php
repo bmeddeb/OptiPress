@@ -62,15 +62,23 @@ class OptiPress_Organizer_Upload_Handler {
 			'heic', 'heif',
 		);
 
-		// Get manager instances
-		$organizer = optipress_organizer();
-		$this->item_manager       = $organizer->get_item_manager();
-		$this->file_manager       = $organizer->get_file_manager();
-		$this->metadata_extractor = $organizer->metadata;
-
 		// Hook into upload process AFTER Advanced_Formats (which runs at priority 10)
 		// Priority 20 ensures Advanced_Formats has already processed the file
 		add_filter( 'wp_generate_attachment_metadata', array( $this, 'handle_upload' ), 20, 2 );
+	}
+
+	/**
+	 * Get manager instances (lazy loading to avoid circular dependency).
+	 *
+	 * @return void
+	 */
+	private function init_managers() {
+		if ( ! $this->item_manager ) {
+			$organizer = optipress_organizer();
+			$this->item_manager       = $organizer->get_item_manager();
+			$this->file_manager       = $organizer->get_file_manager();
+			$this->metadata_extractor = $organizer->metadata;
+		}
 	}
 
 	/**
@@ -207,6 +215,9 @@ class OptiPress_Organizer_Upload_Handler {
 	 * @return int|WP_Error Item ID on success, WP_Error on failure.
 	 */
 	public function create_item_from_attachment( $attachment_id, $metadata ) {
+		// Initialize managers (lazy loading)
+		$this->init_managers();
+
 		$attachment = get_post( $attachment_id );
 		if ( ! $attachment ) {
 			return new WP_Error( 'invalid_attachment', __( 'Invalid attachment ID.', 'optipress' ) );
@@ -312,6 +323,9 @@ class OptiPress_Organizer_Upload_Handler {
 	 * @return array Array of created file IDs.
 	 */
 	public function create_size_files( $item_id, $attachment_id, $metadata ) {
+		// Initialize managers (lazy loading)
+		$this->init_managers();
+
 		$created_files = array();
 
 		if ( empty( $metadata['sizes'] ) || ! is_array( $metadata['sizes'] ) ) {
