@@ -40,6 +40,8 @@
   - [x] Add logging for write failures
   - [x] Consider adding `index.php` deny file for non-Apache servers
 - [ ] Add capability checks for organizer-only admin features
+  - [x] Gate organizer admin pages by filtered capability
+  - [x] Provide filter `optipress_organizer_capability` for customization
 - [ ] Review and test XXE mitigations in SVG handling
 
 ### Additional SVG Hardening
