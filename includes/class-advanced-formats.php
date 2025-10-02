@@ -164,7 +164,17 @@ final class Advanced_Formats {
 				$im->setIteratorIndex( 0 );
 			}
 			$im = $im->mergeImageLayers( \Imagick::LAYERMETHOD_FLATTEN );
-			$im->autoOrient();
+
+			// Handle TIFF orientation issues more gracefully
+			try {
+				$im->autoOrient();
+			} catch ( \ImagickException $e ) {
+				// If autoOrient fails (e.g., invalid orientation value), try to continue without it
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					error_log( '[OptiPress Advanced Formats] autoOrient failed for ' . basename( $file ) . ': ' . $e->getMessage() . ' - continuing without orientation correction' );
+				}
+				// Continue processing without orientation correction
+			}
 
 			// Pick target preview format from OptiPress Image Optimization settings
 			$options = get_option( 'optipress_options', array() );
