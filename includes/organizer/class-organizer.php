@@ -129,6 +129,7 @@ class OptiPress_Organizer {
 	private function load_dependencies() {
 		$organizer_path = OPTIPRESS_PLUGIN_DIR . 'includes/organizer/';
 
+		require_once $organizer_path . 'class-validator.php';
 		require_once $organizer_path . 'class-post-types.php';
 		require_once $organizer_path . 'class-taxonomies.php';
 		require_once $organizer_path . 'class-database.php';

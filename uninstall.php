@@ -110,6 +110,80 @@ foreach ( $attachments as $attachment ) {
 */
 
 /**
+ * Delete Library Organizer data
+ *
+ * Removes all organizer CPTs, taxonomies, database tables, and files.
+ */
+
+// Load database class for cleanup
+require_once plugin_dir_path( __FILE__ ) . 'includes/organizer/class-database.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/organizer/class-file-system.php';
+
+// Delete all optipress_item posts
+$item_ids = $wpdb->get_col(
+	"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'optipress_item'"
+);
+
+foreach ( $item_ids as $item_id ) {
+	wp_delete_post( $item_id, true ); // Force delete, skip trash
+}
+
+// Delete all optipress_file posts
+$file_ids = $wpdb->get_col(
+	"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'optipress_file'"
+);
+
+foreach ( $file_ids as $file_id ) {
+	wp_delete_post( $file_id, true ); // Force delete, skip trash
+}
+
+// Delete organizer taxonomies
+$taxonomies = array( 'optipress_collection', 'optipress_tag', 'optipress_access', 'optipress_file_type' );
+
+foreach ( $taxonomies as $taxonomy ) {
+	$terms = $wpdb->get_results( $wpdb->prepare(
+		"SELECT t.term_id FROM {$wpdb->terms} t
+		INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
+		WHERE tt.taxonomy = %s",
+		$taxonomy
+	) );
+
+	foreach ( $terms as $term ) {
+		wp_delete_term( $term->term_id, $taxonomy );
+	}
+
+	// Delete taxonomy itself
+	$wpdb->delete( $wpdb->term_taxonomy, array( 'taxonomy' => $taxonomy ) );
+}
+
+// Drop organizer custom tables
+$database = new OptiPress_Organizer_Database();
+$database->drop_tables();
+
+// Delete organizer files and directories
+$file_system = new OptiPress_Organizer_File_System();
+$base_dir = $file_system->get_base_directory();
+
+if ( is_dir( $base_dir ) ) {
+	// Recursively delete organizer directory
+	$iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $base_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+
+	foreach ( $iterator as $file ) {
+		if ( $file->isDir() ) {
+			rmdir( $file->getPathname() );
+		} else {
+			unlink( $file->getPathname() );
+		}
+	}
+
+	// Delete the base directory
+	rmdir( $base_dir );
+}
+
+/**
  * Clear any cached data
  */
 wp_cache_flush();
