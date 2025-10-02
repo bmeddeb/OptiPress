@@ -17,29 +17,42 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  */
 delete_option( 'optipress_options' );
 delete_option( 'optipress_security_log' );
+delete_option( 'optipress_organizer_db_version' );
 
 /**
- * Delete all plugin metadata from attachments
+ * Delete all plugin metadata from posts
  *
  * Removes all _optipress_* meta keys including:
- * - _optipress_converted
- * - _optipress_format
- * - _optipress_engine
- * - _optipress_converted_sizes
- * - _optipress_conversion_date
- * - _optipress_original_size
- * - _optipress_converted_size
- * - _optipress_bytes_saved
- * - _optipress_percent_saved
- * - _optipress_errors
+ *
+ * Attachment meta (from Image Converter):
+ * - _optipress_converted, _optipress_format, _optipress_engine
+ * - _optipress_converted_sizes, _optipress_conversion_date
+ * - _optipress_original_size, _optipress_converted_size
+ * - _optipress_bytes_saved, _optipress_percent_saved, _optipress_errors
+ *
+ * Attachment meta (from Organizer):
+ * - _optipress_is_advanced_format, _optipress_organizer_item_id
+ *
+ * Item meta (optipress_item):
+ * - _optipress_metadata, _optipress_display_file
+ * - _optipress_view_count, _optipress_size_files
+ *
+ * File meta (optipress_file):
+ * - _optipress_file_path, _optipress_file_size, _optipress_file_format
+ * - _optipress_variant_type, _optipress_dimensions
+ * - _optipress_conversion_settings, _optipress_exif_data
+ * - _optipress_iptc_data, _optipress_download_count
+ * - _optipress_file_info, _optipress_complete_metadata, _optipress_size_name
  */
 global $wpdb;
 
 // Delete all _optipress_* metadata using wildcard
-$wpdb->query(
+$deleted_meta = $wpdb->query(
 	"DELETE FROM {$wpdb->postmeta}
 	WHERE meta_key LIKE '_optipress_%'"
 );
+
+// Note: Metadata is deleted BEFORE posts to avoid orphaned meta
 
 /**
  * Optional: Delete converted image files
@@ -110,12 +123,29 @@ foreach ( $attachments as $attachment ) {
 */
 
 /**
+ * Delete transients
+ *
+ * Clean up any temporary data stored in transients.
+ */
+$wpdb->query(
+	"DELETE FROM {$wpdb->options}
+	WHERE option_name LIKE '_transient_optipress_%'
+	OR option_name LIKE '_transient_timeout_optipress_%'"
+);
+
+/**
  * Delete Library Organizer data
  *
  * Removes all organizer CPTs, taxonomies, database tables, and files.
+ *
+ * Cleanup order:
+ * 1. Posts (items & files) - Deletes CPT posts and their relationships
+ * 2. Taxonomies - Removes custom taxonomies and all terms
+ * 3. Database tables - Drops custom tables (downloads tracking)
+ * 4. Physical files - Recursively deletes uploads/optipress/ directory
  */
 
-// Load database class for cleanup
+// Load required classes for cleanup
 require_once plugin_dir_path( __FILE__ ) . 'includes/organizer/class-database.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/organizer/class-file-system.php';
 
@@ -164,23 +194,33 @@ $database->drop_tables();
 $file_system = new OptiPress_Organizer_File_System();
 $base_dir = $file_system->get_base_directory();
 
-if ( is_dir( $base_dir ) ) {
+// Safety check: Verify we're deleting the correct directory
+// Base dir should be: {uploads}/optipress/
+$upload_dir = wp_upload_dir();
+$expected_base = trailingslashit( $upload_dir['basedir'] ) . 'optipress/';
+
+if ( $base_dir === $expected_base && is_dir( $base_dir ) ) {
 	// Recursively delete organizer directory
-	$iterator = new RecursiveIteratorIterator(
-		new RecursiveDirectoryIterator( $base_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
-		RecursiveIteratorIterator::CHILD_FIRST
-	);
+	try {
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $base_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
 
-	foreach ( $iterator as $file ) {
-		if ( $file->isDir() ) {
-			rmdir( $file->getPathname() );
-		} else {
-			unlink( $file->getPathname() );
+		foreach ( $iterator as $file ) {
+			if ( $file->isDir() ) {
+				@rmdir( $file->getPathname() );
+			} else {
+				@unlink( $file->getPathname() );
+			}
 		}
-	}
 
-	// Delete the base directory
-	rmdir( $base_dir );
+		// Delete the base directory
+		@rmdir( $base_dir );
+	} catch ( Exception $e ) {
+		// Silently fail - files may be locked or permissions issue
+		// This prevents fatal errors during uninstall
+	}
 }
 
 /**
