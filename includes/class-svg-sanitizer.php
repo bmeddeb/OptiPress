@@ -146,6 +146,13 @@ class SVG_Sanitizer {
 			return $data;
 		}
 
+		// Debug logging
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( 'OptiPress SVG: Processing ' . $filename );
+			error_log( 'OptiPress SVG: Input data: ' . print_r( $data, true ) );
+			error_log( 'OptiPress SVG: MIMES has SVG: ' . ( isset( $mimes['svg'] ) ? 'YES' : 'NO' ) );
+		}
+
 		// Optionally verify the file content is actually SVG (if file exists)
 		if ( file_exists( $file ) ) {
 			$file_contents = file_get_contents( $file, false, null, 0, 100 );
@@ -153,18 +160,23 @@ class SVG_Sanitizer {
 			// Check for SVG signature - if not found, reject
 			if ( false === strpos( $file_contents, '<svg' ) && false === strpos( $file_contents, '<?xml' ) ) {
 				// Not a valid SVG, don't process
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					error_log( 'OptiPress SVG: No SVG signature found' );
+				}
 				return $data;
 			}
 		}
 
 		// Force set the correct type and extension
-		// This bypasses WordPress's strict MIME type validation
 		$data['ext']  = 'svg';
 		$data['type'] = 'image/svg+xml';
 
-		// CRITICAL: Remove proper_filename to prevent WordPress from rejecting the file
-		// WordPress uses proper_filename to enforce the unfiltered_upload capability check
-		unset( $data['proper_filename'] );
+		// Don't set proper_filename - let WordPress handle it
+		// Just ensure ext and type are correct
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( 'OptiPress SVG: Output data: ' . print_r( $data, true ) );
+		}
 
 		return $data;
 	}
@@ -463,7 +475,7 @@ class SVG_Sanitizer {
 	 * @return bool Whether SVG support is enabled.
 	 */
 	private function is_svg_enabled() {
-		return isset( $this->options['svg_enabled'] ) && true === $this->options['svg_enabled'];
+		return ! empty( $this->options['svg_enabled'] );
 	}
 
 	/**

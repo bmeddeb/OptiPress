@@ -196,10 +196,10 @@ class Admin_Interface {
 
 		// SVG page fields
 		if ( isset( $input['svg_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-svg' ) !== false ) ) {
-			$sanitized['svg_enabled'] = isset( $input['svg_enabled'] ) && $input['svg_enabled'];
+			$sanitized['svg_enabled'] = (bool) ( isset( $input['svg_enabled'] ) && $input['svg_enabled'] );
 		}
 		if ( isset( $input['svg_preview_enabled'] ) || ( isset( $_POST['_wp_http_referer'] ) && strpos( $_POST['_wp_http_referer'], 'page=optipress-svg' ) !== false ) ) {
-			$sanitized['svg_preview_enabled'] = isset( $input['svg_preview_enabled'] ) && $input['svg_preview_enabled'];
+			$sanitized['svg_preview_enabled'] = (bool) ( isset( $input['svg_preview_enabled'] ) && $input['svg_preview_enabled'] );
 		}
 
 		// Front-end delivery options (optimization page)
