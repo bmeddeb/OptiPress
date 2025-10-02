@@ -212,7 +212,6 @@ function optipress_init() {
 
 	// Allow supported image formats for upload
 	add_filter( 'upload_mimes', 'optipress_allow_supported_mimes' );
-	add_filter( 'wp_check_filetype_and_ext', 'optipress_fix_mime_type_validation', 10, 4 );
 }
 add_action( 'plugins_loaded', 'optipress_init' );
 
@@ -240,46 +239,4 @@ function optipress_allow_supported_mimes( $mimes ) {
 	}
 
 	return $mimes;
-}
-
-/**
- * Fix WordPress MIME type validation for supported formats
- *
- * WordPress performs additional MIME type validation beyond upload_mimes for security.
- * This filter corrects the MIME type detection for formats that WordPress doesn't
- * natively recognize but our engines can handle.
- *
- * @param array  $file_data File data with type and ext.
- * @param string $file      Full path to the file.
- * @param string $filename  File name.
- * @param array  $mimes     Mime types keyed by extension.
- * @return array Modified file data.
- */
-function optipress_fix_mime_type_validation( $file_data, $file, $filename, $mimes ) {
-	// If WordPress already detected the type correctly, don't interfere
-	if ( ! empty( $file_data['ext'] ) && ! empty( $file_data['type'] ) ) {
-		return $file_data;
-	}
-
-	// Get file extension
-	$file_ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
-
-	// Check if this is a supported format
-	$registry = \OptiPress\Engines\Engine_Registry::get_instance();
-	$supported_formats = $registry->get_all_supported_input_formats();
-
-	// Get our extension to MIME map
-	$extension_map = \OptiPress\MIME_Type_Map::get_extension_to_mime_map( $supported_formats );
-
-	if ( isset( $extension_map[ $file_ext ] ) ) {
-		$mime_type = $extension_map[ $file_ext ];
-
-		// Double-check it's in the allowed mimes
-		if ( isset( $mimes ) && in_array( $mime_type, $mimes, true ) ) {
-			$file_data['ext']  = $file_ext;
-			$file_data['type'] = $mime_type;
-		}
-	}
-
-	return $file_data;
 }

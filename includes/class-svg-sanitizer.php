@@ -72,10 +72,9 @@ class SVG_Sanitizer {
 	private function init_hooks() {
 		// Enable SVG MIME type
 		add_filter( 'upload_mimes', array( $this, 'enable_svg_mime_type' ), 10, 1 );
-		add_filter( 'wp_check_filetype_and_ext', array( $this, 'check_svg_filetype' ), 10, 4 );
 
-		// Additional MIME type check for multi-site
-		add_filter( 'wp_check_filetype_and_ext', array( $this, 'fix_mime_type_svg' ), 75, 4 );
+		// Check and fix SVG filetype validation (priority 99 to override WordPress core)
+		add_filter( 'wp_check_filetype_and_ext', array( $this, 'check_svg_filetype' ), 99, 4 );
 
 		// Sanitize SVG on upload
 		add_filter( 'wp_handle_upload_prefilter', array( $this, 'validate_svg_upload' ) );
@@ -123,7 +122,14 @@ class SVG_Sanitizer {
 	}
 
 	/**
-	 * Check SVG filetype and extension
+	 * Check and fix SVG filetype validation
+	 *
+	 * Comprehensive SVG MIME type handler that:
+	 * - Validates SVG content when file exists
+	 * - Forces correct MIME type and extension
+	 * - Bypasses WordPress's strict validation (unfiltered_upload capability check)
+	 *
+	 * This must run at high priority (99) to override WordPress core validation.
 	 *
 	 * @param array  $data     File data.
 	 * @param string $file     File path.
@@ -135,26 +141,30 @@ class SVG_Sanitizer {
 		// Get file extension
 		$ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
 
-		// Check if it's an SVG file
-		if ( 'svg' === $ext || 'svgz' === $ext ) {
-			// Verify the file content is actually SVG
-			if ( file_exists( $file ) ) {
-				$file_contents = file_get_contents( $file, false, null, 0, 100 );
+		// Only process SVG files
+		if ( 'svg' !== $ext && 'svgz' !== $ext ) {
+			return $data;
+		}
 
-				// Check for SVG signature
-				if ( false !== strpos( $file_contents, '<svg' ) || false !== strpos( $file_contents, '<?xml' ) ) {
-					$data['ext']  = 'svg';
-					$data['type'] = 'image/svg+xml';
+		// Optionally verify the file content is actually SVG (if file exists)
+		if ( file_exists( $file ) ) {
+			$file_contents = file_get_contents( $file, false, null, 0, 100 );
 
-					// Fix WordPress's "proper_filename" check
-					$data['proper_filename'] = $filename;
-				}
-			} else {
-				// File doesn't exist yet, trust the extension
-				$data['ext']  = 'svg';
-				$data['type'] = 'image/svg+xml';
+			// Check for SVG signature - if not found, reject
+			if ( false === strpos( $file_contents, '<svg' ) && false === strpos( $file_contents, '<?xml' ) ) {
+				// Not a valid SVG, don't process
+				return $data;
 			}
 		}
+
+		// Force set the correct type and extension
+		// This bypasses WordPress's strict MIME type validation
+		$data['ext']  = 'svg';
+		$data['type'] = 'image/svg+xml';
+
+		// CRITICAL: Remove proper_filename to prevent WordPress from rejecting the file
+		// WordPress uses proper_filename to enforce the unfiltered_upload capability check
+		unset( $data['proper_filename'] );
 
 		return $data;
 	}
@@ -606,40 +616,6 @@ class SVG_Sanitizer {
 				$cleaned_count
 			) );
 		}
-	}
-
-	/**
-	 * Additional MIME type check for SVG files
-	 *
-	 * This runs at priority 75 to override WordPress's default check.
-	 * Needed for multisite and some hosting configurations.
-	 *
-	 * @param array  $data     File data.
-	 * @param string $file     File path.
-	 * @param string $filename File name.
-	 * @param array  $mimes    Allowed MIME types.
-	 * @return array Modified file data.
-	 */
-	public function fix_mime_type_svg( $data, $file, $filename, $mimes ) {
-		$ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
-
-		// Only process SVG files
-		if ( 'svg' !== $ext && 'svgz' !== $ext ) {
-			return $data;
-		}
-
-		// If type or ext is not set, set them
-		if ( empty( $data['type'] ) || empty( $data['ext'] ) ) {
-			$data['type'] = 'image/svg+xml';
-			$data['ext']  = 'svg';
-		}
-
-		// Override any "false" proper_filename
-		if ( isset( $data['proper_filename'] ) && false === $data['proper_filename'] ) {
-			$data['proper_filename'] = $filename;
-		}
-
-		return $data;
 	}
 
 	/**
