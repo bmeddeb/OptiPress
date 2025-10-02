@@ -327,29 +327,7 @@ class Image_Converter {
 	 * @param string $file_path Full path to original file.
 	 * @param array  $metadata  Attachment metadata.
 	 */
-	private function delete_original_files( $file_path, $metadata ) {
-		// Delete full-size original
-		if ( file_exists( $file_path ) ) {
-			wp_delete_file( $file_path );
-		}
-
-		// Delete original image sizes
-		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ) {
-			$upload_dir = dirname( $file_path );
-
-			foreach ( $metadata['sizes'] as $size_data ) {
-				if ( ! isset( $size_data['file'] ) ) {
-					continue;
-				}
-
-				$size_path = trailingslashit( $upload_dir ) . $size_data['file'];
-
-				if ( file_exists( $size_path ) ) {
-					wp_delete_file( $size_path );
-				}
-			}
-		}
-	}
+    // Originals are always preserved; no deletion routine.
 
 	/**
 	 * Check if file should be converted
@@ -436,9 +414,7 @@ private function should_convert_file( $file_path ) {
 	 *
 	 * @return bool Whether to keep originals.
 	 */
-	private function should_keep_originals() {
-		return isset( $this->options['keep_originals'] ) && true === $this->options['keep_originals'];
-	}
+    // Kept for backward compatibility; originals are always preserved now.
 
 	/**
 	 * Get target format from settings

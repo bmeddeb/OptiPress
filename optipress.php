@@ -63,18 +63,17 @@ add_action( 'init', 'optipress_load_textdomain' );
  */
 function optipress_activate() {
 	// Set default options
-	$default_options = array(
-		'engine'               => 'auto',      // auto, gd, imagick
-		'format'               => 'webp',      // webp, avif
-		'quality'              => 85,          // 1-100
-		'auto_convert'         => true,
-		'keep_originals'       => true,
-		'svg_enabled'          => false,
-		'enable_content_filter' => true,
-		'use_picture_element'  => false,
-		'delivery_method'      => 'htaccess',  // htaccess, content_filter, both
-		'advanced_previews'    => true,        // Generate previews for TIFF/PSD/RAW
-	);
+    $default_options = array(
+        'engine'               => 'auto',      // auto, gd, imagick
+        'format'               => 'webp',      // webp, avif
+        'quality'              => 85,          // 1-100
+        'auto_convert'         => true,
+        'svg_enabled'          => false,
+        'enable_content_filter' => true,
+        'use_picture_element'  => false,
+        'delivery_method'      => 'htaccess',  // htaccess, content_filter, both
+        'advanced_previews'    => true,        // Generate previews for TIFF/PSD/RAW
+    );
 
 	add_option( 'optipress_options', $default_options );
 
